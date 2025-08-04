@@ -3,6 +3,8 @@
 import React from 'react';
 import { LogOut } from 'lucide-react';
 import { supabase } from '@/services/supaBaseClient';
+import { toast } from 'sonner';
+
 
 const LogoutButton = () => {
     const handleLogout = async () => {
@@ -10,14 +12,14 @@ const LogoutButton = () => {
             const { error } = await supabase.auth.signOut();
             if (error) {
                 console.error('Error logging out:', error);
-                alert('Error logging out');
+                toast.error('Error logging out');
             } else {
-                alert('Logout successful!');
-                window.location.href = '/login';
+                toast.success('Logout successful!');
+                window.location.href = '/auth';
             }
         } catch (error) {
             console.error('Error:', error);
-            alert('Error logging out');
+            toast.error('Error logging out');
         }
     };
 
