@@ -8,11 +8,14 @@ const Login = () => {
 
     const signInWithGoogle = async () => {
         const { error } = await supabase.auth.signInWithOAuth({
-            provider: 'google'
-        })
+            provider: 'google',
+            options: {
+                redirectTo: 'https://ai-cruiter2.vercel.app' // 👈 Very important on Vercel
+            }
+        });
 
         if (error) {
-            consol.log("error msg", error.message);
+            console.log("error msg", error.message); // 👈 Also fix spelling: "console", not "consol"
         }
     }
 
