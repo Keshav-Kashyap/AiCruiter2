@@ -37,7 +37,7 @@ function ScheduledInterview() {
         <div className=" mt-5">
 
 
-            <h2 className="font-bold text-xl">Interview List with Candidate Feedback</h2>
+            <h2 className="font-bold text-xl">Interview Lists with Candidate Feedback</h2>
 
             {loading ? (
                 <div className='mt-5 text-center text-muted-foreground'>
