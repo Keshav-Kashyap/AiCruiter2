@@ -36,10 +36,7 @@ export default function RootLayout({ children }) {
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <Provider>
-          {/* Optional header with logo */}
-          <header className="p-4">
-            <Image src="/logo2.png" alt="AiCruiter Logo" width={40} height={40} />
-          </header>
+
 
           {children}
 
