@@ -61,7 +61,7 @@ const CreateInterview = () => {
 
 
     return (
-        <div className='mt-10 px-10 md:px-14 lg:px-24 xl:px-36'>
+        <div className='mt-10 px-2 md:px-7 lg:px-10 xl:px-20'>
 
             <div className='flex gap-5 items-center'>
                 <ArrowLeft onClick={() => router.back()} className='cursor-pointer' />

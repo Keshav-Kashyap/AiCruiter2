@@ -186,3 +186,22 @@ export const plans = [
         popular: false
     }
 ];
+// Vibrant, modern colors (hand-picked)
+// avatarUtils.js
+const avatarColors = [
+    '#5A4FCF', '#F06292', '#4DB6AC', '#BA68C8',
+    '#FFD54F', '#4FC3F7', '#81C784', '#9575CD',
+];
+
+export function getAvatarColor(name = '') {
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) {
+        hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const index = Math.abs(hash) % avatarColors.length;
+    return avatarColors[index];
+}
+
+export function getInitial(name = '') {
+    return name.charAt(0).toUpperCase();
+}

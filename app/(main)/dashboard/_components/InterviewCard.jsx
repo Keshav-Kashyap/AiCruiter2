@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button';
+import { getAvatarColor, getInitial } from '@/services/Constants';
 import { ArrowRight, Copy, Send } from 'lucide-react';
 import moment from 'moment'
 import Link from 'next/link';
@@ -30,15 +31,28 @@ const InterviewCard = ({ interview, viewDetail = false }) => {
         <div className='p-5 bg-white border rounded-lg'>
 
             <div className='flex items-center  justify-between'>
-                <div className='h-[40px] w-[40px] bg-primary rounded-full'></div>
+                <div className="relative">
+                    {/* Initial Circle */}
+                    <div
+                        className="h-14 w-14 rounded-full flex items-center justify-center text-white font-semibold text-xl shadow-lg"
+                        style={{ backgroundColor: getAvatarColor(`${interview?.jobPosition}`) }}
+                    >
+                        {getInitial(`${interview?.jobPosition}`)}
+                    </div>
+
+
+                </div>
+
                 <h2 className='text-sm'>{moment(interview?.created_at).format('DD MMM yyy')}</h2>
 
 
 
             </div>
             <h2 className='text-lg font-bold mt-3'>{interview?.jobPosition.charAt(0).toUpperCase() + interview?.jobPosition?.slice(1)}</h2>
+
             <h2 className=' mt-2 flex justify-between items-center text-gray-500'>{interview?.duration}
-                <span className="text-green-700">{interview['interview-feedback']?.length} Candidates</span>
+                {viewDetail && <span className="text-green-700">{interview['interview-feedback']?.length} Candidates</span>}
+
 
 
             </h2>

@@ -1,324 +1,236 @@
-"use client"
-import React, { useState } from 'react';
-import { Play, Users, Calendar, Phone, CheckCircle, ArrowRight, Menu, X, Star, Zap, Target, Clock } from 'lucide-react';
-import Link from 'next/link';
-import { useEffect } from 'react';
-import { supabase } from '@/services/supaBaseClient';
-import { useRouter } from 'next/navigation';
-import Image from 'next/image';
 
-export default function Home() {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+"use client"
+import Navbar from "@/components/Navbar";
+import { MoveRight, Sparkles, Users, Target, Trophy, ChevronLeft, ChevronRight } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+
+
+// Mock BackgroundLines component since it's not available 
+const BackgroundLines = ({ className, children }) => (
+  <div className={className}>
+    {children}
+  </div>
+);
+
+// Mock Button component
+const Button = ({ onClick, size, className, children, onMouseEnter, onMouseLeave, variant }) => (
+  <button
+    onClick={onClick}
+    onMouseEnter={onMouseEnter}
+    onMouseLeave={onMouseLeave}
+    className={`px-4 py-2 rounded font-medium transition-all duration-200 ${className}`}
+  >
+    {children}
+  </button>
+);
+
+// Mock Badge component
+const Badge = ({ variant, className, children }) => (
+  <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${className}`}>
+    {children}
+  </span>
+);
+
+export default function HeroSectionOne() {
+
   const router = useRouter();
 
+  const [isHovered, setIsHovered] = useState(false);
+  const [currentSlide, setCurrentSlide] = useState(0);
+
+  const slides = [
+    {
+      url: "https://images.unsplash.com/photo-1551434678-e076c223a692?ixlib=rb-4.0.3&auto=format&fit=crop&w=2340&q=80",
+      alt: "AI Interview Dashboard"
+    },
+    {
+      url: "https://images.unsplash.com/photo-1552664730-d307ca884978?ixlib=rb-4.0.3&auto=format&fit=crop&w=2340&q=80",
+      alt: "Team Meeting Interface"
+    },
+    {
+      url: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?ixlib=rb-4.0.3&auto=format&fit=crop&w=2340&q=80",
+      alt: "Analytics Dashboard"
+    }
+  ];
 
   useEffect(() => {
-    const checkUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        console.log("user logged in");
-      }
-      else {
-        console.log("not logged in");
-      }
+    const timer = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % slides.length);
+    }, 4000);
+    return () => clearInterval(timer);
+  }, [slides.length]);
 
-    };
+  const nextSlide = () => {
+    setCurrentSlide((prev) => (prev + 1) % slides.length);
+  };
 
-    checkUser();
-  }, []);
+  const prevSlide = () => {
+    setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
+  };
 
-
-  const onDashboard = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    console.log(user);
-
-    if (user) {
-      router.push('/dashboard');
-    }
-    else {
-      router.push('/auth');
-    }
-
-  }
+  const onDashboard = () => {
+    router.push('/dashboard');
+  };
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Navigation */}
-      <nav className="bg-white shadow-sm border-b border-gray-100 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <BackgroundLines className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden bg-black">
 
-          <div className="flex justify-between gap-12  items-center h-16">
+      {/* Floating Orbs */}
+      <div
+        className="absolute top-20 left-20 w-72 h-72 bg-blue-400/20 rounded-full blur-3xl animate-pulse"
+        style={{
+          animation: 'float1 8s ease-in-out infinite'
+        }}
+      />
+      <div
+        className="absolute bottom-20 right-20 w-96 h-96 bg-purple-400/20 rounded-full blur-3xl animate-pulse"
+        style={{
+          animation: 'float2 10s ease-in-out infinite'
+        }}
+      />
 
-
-
-            <div className="flex items-center space-x-2">
-
-              <Image src='/logo.png' alt='logo' width={130} height={130} />
-
-            </div>
-
-            <div className='hidden  md:flex items-center gap-7'>
-              <a href="#features" className="text-gray-600 hover:text-blue-600 transition-colors">Features</a>
-              <a href="#how-it-works" className="text-gray-600 hover:text-blue-600 transition-colors">How It Works</a>
-
-              <Link href='/auth' className="text-gray-600 hover:text-blue-600 transition-colors">
-                Sign In
-              </Link>
+      <Navbar onDashboard={onDashboard} />
 
 
-            </div>
-
-
-            <div className="hidden md:flex items-center space-x-8">
-
-              <button onClick={() => onDashboard()} className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors">
-                Dashboard
-              </button>
+      <div className="relative z-10 px-4 py-20 max-w-6xl mt-20 mx-auto">
 
 
 
+        {/* Main Heading */}
+        <div className="opacity-0 animate-fadeInUp" style={{ animationDelay: '0.1s' }}>
+          <h1 className="relative mx-auto max-w-5xl text-center text-4xl font-bold tracking-tight text-slate-100 md:text-6xl lg:text-7xl">
+            Your Personal{" "}
+            <span className="relative">
+              <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-indigo-400 bg-clip-text text-transparent">
+                AI Interview Coach
+              </span>
+              <div className="absolute -bottom-2 left-0 right-0 h-1 bg-gradient-to-r from-blue-400 via-purple-400 to-indigo-400 rounded-full animate-scaleX" />
+            </span>
+          </h1>
+        </div>
 
-            </div>
+        {/* Subtitle */}
+        <p className="relative mx-auto max-w-2xl py-8 text-center text-lg font-normal leading-relaxed text-slate-300 md:text-xl opacity-0 animate-fadeInUp"
+          style={{ animationDelay: '0.2s' }}>
+          An intelligent platform that simulates real interviews, provides{" "}
+          <span className="font-semibold text-blue-400">
+            personalized feedback
+          </span>
+          , and equips you with the skills to land your dream job.
+        </p>
 
-
-
-            <button
-              className="md:hidden"
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
+        {/* Feature Icons */}
+        <div className="flex justify-center gap-8 mb-12 opacity-0 animate-fadeInUp"
+          style={{ animationDelay: '0.3s' }}>
+          {[
+            { icon: Users, label: "1000+ Users" },
+            { icon: Target, label: "95% Success Rate" },
+            { icon: Trophy, label: "Industry Leaders" },
+          ].map((item, index) => (
+            <div
+              key={index}
+              className="flex flex-col items-center gap-2 hover:scale-105 transition-transform duration-200"
+              style={{
+                animation: `float${index + 3} 3s ease-in-out infinite`,
+                animationDelay: `${index * 0.5}s`
+              }}
             >
-              {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-            </button>
-          </div>
+              <div className="p-3 rounded-full bg-slate-800/80 backdrop-blur-sm border border-slate-700/50 shadow-lg">
+                <item.icon className="w-6 h-6 text-blue-400" />
+              </div>
+              <span className="text-sm font-medium text-slate-400">
+                {item.label}
+              </span>
+            </div>
+          ))}
         </div>
 
-        {/* Mobile menu */}
-        {isMenuOpen && (
-          <div className="md:hidden bg-white border-t border-gray-100">
-            <div className="px-4 py-2 space-y-2">
-              <a href="#features" className="block py-2 text-gray-600">Features</a>
-              <a href="#how-it-works" className="block py-2 text-gray-600">How It Works</a>
-              <Link href='/auth' className="block py-2 text-gray-600" >
-                Sign In
-              </Link>
+        {/* CTA Button */}
+        <div className="flex justify-center mb-16 opacity-0 animate-fadeInUp"
+          style={{ animationDelay: '0.4s' }}>
+          <Button
+            onClick={onDashboard}
+            size="lg"
+            className="group relative h-14 w-64 overflow-hidden rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 text-lg font-semibold text-white shadow-2xl shadow-blue-500/25 transition-all duration-300 hover:shadow-2xl hover:shadow-blue-500/40 hover:-translate-y-1"
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+          >
+            <div
+              className={`absolute inset-0 bg-gradient-to-r from-purple-600 to-indigo-600 transition-transform duration-300 ${isHovered ? 'translate-x-0' : '-translate-x-full'
+                }`}
+            />
+            <span className="relative z-10 flex items-center justify-center gap-3">
+              Explore Now
+              <MoveRight className={`w-5 h-5 transition-transform duration-200 ${isHovered ? 'translate-x-1' : ''}`} />
+            </span>
+          </Button>
+        </div>
 
-              <button onClick={() => onDashboard()} className="w-full bg-blue-500 text-white px-4 py-2 rounded-lg mt-2">
-                Dashboard
+        {/* Image Slider */}
+        <div className="relative mx-auto max-w-4xl opacity-0 animate-fadeInUp"
+          style={{ animationDelay: '0.5s' }}>
+          <div className="relative rounded-3xl border border-slate-700/50 bg-slate-800/80 backdrop-blur-sm p-4 shadow-2xl shadow-slate-900/20 overflow-hidden">
+            <div className="absolute -inset-1 rounded-3xl bg-gradient-to-r from-blue-400 via-purple-400 to-indigo-400 opacity-20 blur-lg animate-pulse" />
+            <div className="relative overflow-hidden rounded-2xl border border-slate-600/50">
+
+              {/* Slider Container */}
+              <div className="relative aspect-[16/10] w-full">
+                {slides.map((slide, index) => (
+                  <div
+                    key={index}
+                    className={`absolute inset-0 transition-all duration-700 ease-in-out ${index === currentSlide
+                      ? 'opacity-100 transform translate-x-0'
+                      : index < currentSlide
+                        ? 'opacity-0 transform -translate-x-full'
+                        : 'opacity-0 transform translate-x-full'
+                      }`}
+                  >
+                    <img
+                      src={slide.url}
+                      alt={slide.alt}
+                      className="h-full w-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
+                  </div>
+                ))}
+              </div>
+
+              {/* Navigation Arrows */}
+              <button
+                onClick={prevSlide}
+                className="absolute left-4 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-black/50 backdrop-blur-sm text-white hover:bg-black/70 transition-all duration-200 hover:scale-110"
+              >
+                <ChevronLeft className="w-6 h-6" />
               </button>
 
-            </div>
-          </div>
-        )}
-      </nav>
+              <button
+                onClick={nextSlide}
+                className="absolute right-4 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-black/50 backdrop-blur-sm text-white hover:bg-black/70 transition-all duration-200 hover:scale-110"
+              >
+                <ChevronRight className="w-6 h-6" />
+              </button>
 
-      {/* Hero Section */}
-      <section className="bg-gradient-to-br from-blue-50 to-white py-20 min-h-screen">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full">
-          <div className="flex justify-center items-center h-full">
-            <div className="space-y-8 w-[800px] text-center">
-              <div className="space-y-4">
-                <h1 className="text-5xl lg:text-6xl font-bold text-gray-900 leading-tight">
-                  AI-Driven Interviews,
-                  <span className="text-blue-600"> Hassle-Free</span> Hiring
-                </h1>
-                <p className="text-xl text-gray-600 leading-relaxed">
-                  Transform your recruitment process with intelligent AI interviews that screen candidates efficiently and schedule seamlessly.
-                </p>
-              </div>
-
-              <div className="flex flex-col items-center sm:flex-row gap-4 justify-center">
-
-
-                <button onClick={() => onDashboard()} className="bg-blue-500 text-white px-8 py-4 rounded-lg font-semibold hover:bg-blue-600 transition-all hover:scale-105 flex items-center justify-center space-x-2">
-                  <span>Start Free Trial</span>
-                  <ArrowRight className="w-5 h-5" />
-
-
-                </button>
-
-              </div>
-
-              <div className="flex items-center justify-center space-x-8 text-sm text-gray-600">
-                <div className="flex items-center space-x-2">
-                  <CheckCircle className="w-5 h-5 text-green-500" />
-                  <span>5 min setup</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <CheckCircle className="w-5 h-5 text-green-500" />
-                  <span>No credit card required</span>
-                </div>
+              {/* Slide Indicators */}
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
+                {slides.map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setCurrentSlide(index)}
+                    className={`w-3 h-3 rounded-full transition-all duration-300 ${index === currentSlide
+                      ? 'bg-white scale-110 shadow-lg'
+                      : 'bg-white/50 hover:bg-white/80'
+                      }`}
+                  />
+                ))}
               </div>
             </div>
           </div>
         </div>
-      </section>
-
-      {/* Features Section */}
-      <section id="features" className=" py-10 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center space-y-4 mb-16">
-            <h2 className="text-4xl font-bold text-gray-900">Powerful Features for Modern Recruiting</h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Everything you need to streamline your hiring process and find the best candidates faster.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <div className="bg-gray-50 rounded-xl p-8 hover:shadow-lg transition-shadow">
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-6">
-                <Zap className="w-6 h-6 text-blue-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">AI-Powered Interviews</h3>
-              <p className="text-gray-600 leading-relaxed">
-                Create intelligent interviews that adapt to candidate responses and evaluate skills automatically.
-              </p>
-            </div>
-
-            <div className="bg-gray-50 rounded-xl p-8 hover:shadow-lg transition-shadow">
-              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-6">
-                <Calendar className="w-6 h-6 text-green-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">Smart Scheduling</h3>
-              <p className="text-gray-600 leading-relaxed">
-                Automatically schedule interviews and phone screening calls with candidates seamlessly.
-              </p>
-            </div>
-
-            <div className="bg-gray-50 rounded-xl p-8 hover:shadow-lg transition-shadow">
-              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-6">
-                <Users className="w-6 h-6 text-purple-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">Candidate Management</h3>
-              <p className="text-gray-600 leading-relaxed">
-                Track all candidates in one place with detailed profiles and interview history.
-              </p>
-            </div>
-
-            <div className="bg-gray-50 rounded-xl p-8 hover:shadow-lg transition-shadow">
-              <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mb-6">
-                <Target className="w-6 h-6 text-orange-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">Precision Matching</h3>
-              <p className="text-gray-600 leading-relaxed">
-                Advanced algorithms match candidates to roles based on skills, experience, and fit.
-              </p>
-            </div>
-
-            <div className="bg-gray-50 rounded-xl p-8 hover:shadow-lg transition-shadow">
-              <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mb-6">
-                <Clock className="w-6 h-6 text-red-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">Quick Setup</h3>
-              <p className="text-gray-600 leading-relaxed">
-                Get started in just 5 minutes with our intuitive setup process and templates.
-              </p>
-            </div>
-
-            <div className="bg-gray-50 rounded-xl p-8 hover:shadow-lg transition-shadow">
-              <div className="w-12 h-12 bg-teal-100 rounded-lg flex items-center justify-center mb-6">
-                <CheckCircle className="w-6 h-6 text-teal-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">Detailed Analytics</h3>
-              <p className="text-gray-600 leading-relaxed">
-                Get insights into your hiring process with comprehensive reports and metrics.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* How It Works Section */}
-      <section id="how-it-works" className="py-20 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center space-y-4 mb-16">
-            <h2 className="text-4xl font-bold text-gray-900">How It Works</h2>
-            <p className="text-xl text-gray-600">Simple steps to revolutionize your hiring process</p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="text-center space-y-4">
-              <div className="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center mx-auto text-white font-bold text-xl">
-                1
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900">Create Interview</h3>
-              <p className="text-gray-600">
-                Set up your AI interview with custom questions and evaluation criteria in minutes.
-              </p>
-            </div>
-
-            <div className="text-center space-y-4">
-              <div className="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center mx-auto text-white font-bold text-xl">
-                2
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900">Share with Candidates</h3>
-              <p className="text-gray-600">
-                Send interview links to candidates or schedule phone screening calls automatically.
-              </p>
-            </div>
-
-            <div className="text-center space-y-4">
-              <div className="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center mx-auto text-white font-bold text-xl">
-                3
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900">Review & Hire</h3>
-              <p className="text-gray-600">
-                Get AI-generated insights and make informed hiring decisions with detailed reports.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Stats Section */}
-      <section className="py-20 bg-blue-600">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-4 gap-8 text-center text-white">
-            <div className="space-y-2">
-              <div className="text-4xl font-bold">10,000+</div>
-              <div className="text-blue-100">Interviews Conducted</div>
-            </div>
-            <div className="space-y-2">
-              <div className="text-4xl font-bold">95%</div>
-              <div className="text-blue-100">Client Satisfaction</div>
-            </div>
-            <div className="space-y-2">
-              <div className="text-4xl font-bold">70%</div>
-              <div className="text-blue-100">Time Saved</div>
-            </div>
-            <div className="space-y-2">
-              <div className="text-4xl font-bold">500+</div>
-              <div className="text-blue-100">Companies Trust Us</div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-20 bg-white">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-8">
-          <h2 className="text-4xl font-bold text-gray-900">
-            Ready to Transform Your Hiring Process?
-          </h2>
-          <p className="text-xl text-gray-600">
-            Join thousands of companies already using AI Cruiter to find the best candidates faster.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button onClick={() => onDashboard()} className="bg-blue-500 text-white px-8 py-4 rounded-lg font-semibold hover:bg-blue-600 transition-all hover:scale-105 flex items-center justify-center space-x-2">
-              <span>Start Free Trial</span>
-              <ArrowRight className="w-5 h-5" />
-            </button>
-
-          </div>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="bg-gray-900  text-center text-gray-300 py-12">
-        <p>&copy; 2025 AI Cruiter. All rights reserved.</p>
+      </div>
 
 
-
-
-      </footer>
-    </div>
+    </BackgroundLines>
   );
 }
+

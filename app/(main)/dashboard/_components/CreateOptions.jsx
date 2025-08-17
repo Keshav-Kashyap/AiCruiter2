@@ -5,7 +5,7 @@ import React from 'react'
 
 const CreateOptions = () => {
     return (
-        <div className='grid grid-cols-2 gap-5'>
+        <div className='grid sm:grid-cols-2 grid-cols-1 gap-5'>
 
 
             <Link href={'/dashboard/create-interview'}>
@@ -18,7 +18,14 @@ const CreateOptions = () => {
             </Link>
 
             <div className='bg-white border-gray-200 rounded-lg p-5 flex flex-col gap-2 cursor-pointer' >
-                <Phone className='p-3 text-primary bg-blue-50 rounded-lg h-12 w-12 ' />
+                <div className='flex items-center  justify-between'>
+
+                    <Phone className='p-3 text-primary bg-blue-50 rounded-lg h-12 w-12 ' />
+                    {/* Unavailable badge at top-right */}
+                    <span className=" text-xs font-medium text-red-600 bg-red-100 px-3 py-1 rounded-full">
+                        Unavailable
+                    </span>
+                </div>
                 <h2 className='font-bold'>Create phone Screening Call</h2>
                 <p className='text-gray-500' >Scheduale phone screening call with candidates</p>
             </div>
