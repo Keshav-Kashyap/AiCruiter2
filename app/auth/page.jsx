@@ -74,10 +74,30 @@ const Login = () => {
         setIsLoading(true);
 
         try {
-            // Your backend OTP sending logic here
-            await new Promise(resolve => setTimeout(resolve, 2000));
 
-            console.log(`Sending OTP to ${activeTab}:`, activeTab === 'email' ? formData.email : formData.phone);
+
+            const fullPhoneNumber = `+91${formData.phone}`;
+
+            const { error } = await supabase.auth.signInWithOtp({
+                phone: fullPhoneNumber
+            });
+
+            if (error) {
+                console.error('Error sending OTP:', error);
+            } else {
+                setOtpSent(true);
+                setSuccess("OTP sent successfully to your phone!");
+                setTimer(60);
+            }
+
+            setIsLoading(false);
+
+
+
+
+
+            console.log("Phone:->", formData.phone);
+            console.log("email:->", formData.email);
 
             setCurrentStep('otp');
             startTimer();
@@ -96,23 +116,26 @@ const Login = () => {
 
         setIsLoading(true);
 
-        try {
-            // Your backend OTP verification logic here
-            await new Promise(resolve => setTimeout(resolve, 1500));
 
-            console.log('Verifying OTP:', formData.otp);
-            setCurrentStep('success');
+        const fullPhoneNumber = `+91${formData.phone}`;
 
-            // Redirect after success
-            setTimeout(() => {
-                console.log('Redirecting to dashboard...');
-            }, 2000);
+        const { data, error } = await supabase.auth.verifyOtp({
+            phone: fullPhoneNumber,
+            token: formData.otp,
+            type: 'sms'
+        });
+        if (error) {
+            setErrors("Invalid OTP or expired. Please try again.");
+        } else {
+            setSuccess("Phone verified successfully!");
+            console.log("Session:", data.session);
+            console.log("Success");
 
-        } catch (error) {
-            setErrors({ otp: 'Invalid OTP. Please try again.' });
         }
 
-        setIsLoading(false);
+
+
+
     };
 
     const startTimer = () => {

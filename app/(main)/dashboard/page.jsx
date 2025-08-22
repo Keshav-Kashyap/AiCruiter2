@@ -2,9 +2,11 @@ import React from 'react'
 import WelcomeContainer from './_components/WelcomeContainer'
 import CreateOptions from './_components/CreateOptions'
 import LatestInterviewsList from './_components/LatestInterviewsList'
+import BackgroundLines from '@/components/Background'
 
 const Dashboard = () => {
     return (
+
         <div >
 
             {/* <WelcomeContainer /> */}
@@ -12,6 +14,9 @@ const Dashboard = () => {
             <CreateOptions />
             <LatestInterviewsList />
         </div>
+
+
+
     )
 }
 

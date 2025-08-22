@@ -1,8 +1,10 @@
 "use client"
 
 import { useUser } from '@/app/provider'
+import ThemeToggle from '@/components/ThemeToggle';
 import Image from 'next/image';
 import React from 'react'
+
 
 const WelcomeContainer = () => {
     const { user } = useUser();
@@ -25,6 +27,10 @@ const WelcomeContainer = () => {
                 className='rounded-full'
 
             />}
+
+            <ThemeToggle />
+
+
 
 
         </div>
