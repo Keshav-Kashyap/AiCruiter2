@@ -5,18 +5,20 @@ import { NextResponse } from "next/server";
 
 
 export async function POST(req) {
-    const { jobPosition, jobDescription, duration, type } = await req.json();
+    const { jobPosition, jobDescription, duration, type, language } = await req.json();
 
     console.log("jobPosition:", jobPosition);
     console.log("jobDescription:", jobDescription);
     console.log("duration:", duration);
     console.log("type:", type);
+    console.log("Language:", language);
 
     const FINAL_PROMPT = QUESTION_PROMPT
         .replace('{{jobTitle}}', jobPosition)
         .replace('{{jobDescription}}', jobDescription)
         .replace('{{duration}}', duration)
         .replace('{{type}}', type)
+        .replace('{{language}}', language);
 
     console.log("YOUR PROMOT", FINAL_PROMPT);
 
@@ -28,7 +30,7 @@ export async function POST(req) {
         })
 
         const completion = await openai.chat.completions.create({
-            model: "google/gemma-3n-e2b-it:free",
+            model: "openai/gpt-oss-20b:free",
             messages: [
                 { role: "user", content: FINAL_PROMPT }
             ],

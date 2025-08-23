@@ -223,6 +223,7 @@ function Sidebar({
 
 function SidebarTrigger({
   className,
+  children,
   onClick,
   ...props
 }) {
@@ -241,7 +242,7 @@ function SidebarTrigger({
         toggleSidebar()
       }}
       {...props}>
-      <LayoutDashboard size={24} />
+      {children ?? <LayoutDashboard size={24} />}
       <span className="sr-only">Toggle Sidebar</span>
     </Button>
   );

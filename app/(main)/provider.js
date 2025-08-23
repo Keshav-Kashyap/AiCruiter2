@@ -11,7 +11,7 @@ const DashboardProvider = ({ children }) => {
             <AppSidebar />
 
 
-            <div className='  bg-gray-100 p-10 w-full'>
+            <div className='  bg-gray-100 dark:bg-gray-900 p-10 w-full'>
 
 
                 {/* <SidebarTrigger /> */}

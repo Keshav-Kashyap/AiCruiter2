@@ -59,6 +59,7 @@ Job Title: {{jobTitle}}
 Job Description: {{jobDescription}}
 Interview Duration: {{duration}}
 Interview Type: {{type}}
+Interview Language: {{language}}
 
 📝 Your task:
 Analyze the job description to identify key responsibilities, required skills, and expected experience.

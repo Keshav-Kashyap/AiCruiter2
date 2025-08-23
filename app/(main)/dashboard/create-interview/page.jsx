@@ -43,7 +43,7 @@ const CreateInterview = () => {
 
 
 
-        if (!formData?.jobPosition || !formData?.jobDescription || !formData?.duration || !formData?.type) {
+        if (!formData?.jobPosition || !formData?.jobDescription || !formData?.duration || !formData?.type || !formData?.language) {
             toast('Please Enter All Details');
             return;
         }
