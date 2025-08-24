@@ -3,13 +3,13 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/services/supaBaseClient';
 import { useUser } from '@/app/provider';
-import BackgroundLayout from './_components/BackgroundLayout';
+import BackgroundLayout from './_components/BackGroundLayout';
 import AuthCard from './_components/AuthCard';
 import MessageDisplay from './_components/MessageDisplay';
 import AuthHeader from './_components/AuthHeader';
 import LoginForm from './_components/LoginForm';
 import OTPForm from './_components/OTPForm';
-import UserDetails from './_components/UserDetails';
+import UserDetails from './_components/userDetails';
 import { useAuthValidation, useAuthTimer } from './_components/useAuthValidation';
 import SuccessView from './_components/SuccessView';
 
