@@ -6,6 +6,8 @@ import Provider from "./provider";
 import { Toaster } from "sonner";
 import Image from "next/image";
 import { ThemeProvider } from "next-themes";
+import ProgressBarLoading from "@/components/ProgressBarLoading";
+
 
 // Import fonts
 const geistSans = Geist({
@@ -42,7 +44,7 @@ export default function RootLayout({ children }) {
 
           <ThemeProvider attribute="class" defaultTheme="dark">
 
-
+            <ProgressBarLoading />
             {children}
           </ThemeProvider>
 

@@ -7,10 +7,12 @@ import React, { useEffect, useState } from 'react'
 import InterviewCard from './InterviewCard'
 import { toast } from 'sonner'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 
 const LatestInterviewsList = () => {
     const [interviewList, setInterviewList] = useState([]);
     const [loading, setLoading] = useState(true);
+    const router = useRouter();
     const { user } = useUser();
 
     useEffect(() => {
@@ -44,6 +46,11 @@ const LatestInterviewsList = () => {
         }
     }
 
+    const onCreateInterview = () => {
+        router.push('/dashboard/create-interview')
+    }
+
+
     const getRecentStats = () => {
         const today = new Date();
         const lastWeek = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -71,7 +78,7 @@ const LatestInterviewsList = () => {
                             Recent Interviews
                         </h2>
                         <p className="text-gray-600 dark:text-gray-300">
-                            Your latest 6 created interviews
+                            Your latest Created interviews
                         </p>
                     </div>
                 </div>
@@ -154,7 +161,12 @@ const LatestInterviewsList = () => {
                                 <p className="text-gray-500 dark:text-gray-400 text-center mb-6 max-w-md">
                                     Get started by creating your first interview. Design questions, set parameters, and begin your hiring process.
                                 </p>
-                                <Button className="bg-primary hover:bg-primary/90 text-white font-semibold px-6 py-3">
+
+                                <Button
+
+                                    onClick={() => onCreateInterview()}
+
+                                    className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 dark:from-blue-600 dark:to-purple-700 dark:hover:from-blue-700 dark:hover:to-purple-800 text-white font-semibold px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 border-0">
                                     <Plus className="w-5 h-5 mr-2" />
                                     Create Your First Interview
                                 </Button>

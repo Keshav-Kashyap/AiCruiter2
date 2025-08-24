@@ -498,14 +498,14 @@ Key Guidelines:
                     {!isCallActive ? (
                         <div className='space-y-3'>
                             <p className='text-gray-700 dark:text-gray-300 font-medium'>
-                                📝 Interview for: {interviewInfo?.interviewData?.jobPosition || 'Loading...'}
+                                Interview for: {interviewInfo?.interviewData?.jobPosition || 'Loading...'}
                             </p>
                             <p className='text-sm text-gray-500 dark:text-gray-400'>
                                 Make sure your microphone is working and you're in a quiet environment
                             </p>
                             <div className='bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 max-w-md mx-auto'>
                                 <p className='text-xs text-blue-700 dark:text-blue-300'>
-                                    💡 <strong>Tip:</strong> Speak clearly and take your time to think before answering
+                                    <strong>Tip:</strong> Speak clearly and take your time to think before answering
                                 </p>
                             </div>
                         </div>

@@ -1,17 +1,20 @@
 "use client";
-import React, { useState } from 'react';
+import React, { use, useState } from 'react';
 import { CheckCircle, Home, Loader2 } from "lucide-react";
+import { useRouter } from 'next/navigation';
+
 
 const InterviewComplete = () => {
     const [loading, setLoading] = useState(false);
-
+    const router = useRouter();
     const handleGoHome = () => {
         setLoading(true);
         // Simulate navigation delay
         setTimeout(() => {
             setLoading(false);
-            // In a real app, you would use router.push('/dashboard') here
-            console.log('Navigating to dashboard...');
+
+            router.push('/dashboard')
+
         }, 1000);
     };
 

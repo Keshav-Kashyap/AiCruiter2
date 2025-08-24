@@ -4,6 +4,8 @@ import Navbar from "@/components/Navbar";
 import { MoveRight, Sparkles, Users, Target, Trophy, ChevronLeft, ChevronRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
+import { useUser } from "./provider";
+
 
 
 // Mock BackgroundLines component since it's not available 
@@ -35,7 +37,7 @@ const Badge = ({ variant, className, children }) => (
 export default function HeroSectionOne() {
 
   const router = useRouter();
-
+  const user = useUser();
   const [isHovered, setIsHovered] = useState(false);
   const [currentSlide, setCurrentSlide] = useState(0);
 
@@ -70,7 +72,18 @@ export default function HeroSectionOne() {
   };
 
   const onDashboard = () => {
-    router.push('/dashboard');
+
+    if (user?.user === null) {
+      router.push("/auth");
+    } else {
+      // console.log("user", user);
+      router.push('/dashboard');
+    }
+
+
+
+
+
   };
 
   return (
