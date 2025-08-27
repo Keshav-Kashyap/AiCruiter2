@@ -5,6 +5,7 @@ import { MoveRight, Sparkles, Users, Target, Trophy, ChevronLeft, ChevronRight }
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useUser } from "./provider";
+import Loading from "@/components/Loading";
 
 
 
@@ -37,7 +38,8 @@ const Badge = ({ variant, className, children }) => (
 export default function HeroSectionOne() {
 
   const router = useRouter();
-  const user = useUser();
+  const { user, loading } = useUser();
+
   const [isHovered, setIsHovered] = useState(false);
   const [currentSlide, setCurrentSlide] = useState(0);
 
@@ -73,11 +75,15 @@ export default function HeroSectionOne() {
 
   const onDashboard = () => {
 
-    if (user?.user === null) {
+    if (loading) {
+      console.log("loading fetching");
+      return; // wait till user is ready
+    }
+
+    if (!user) {
       router.push("/auth");
     } else {
-      // console.log("user", user);
-      router.push('/dashboard');
+      router.push("/dashboard");
     }
 
 
@@ -85,6 +91,15 @@ export default function HeroSectionOne() {
 
 
   };
+
+  if (loading) {
+    return (
+
+
+
+      <Loading loadingMessage={'Please Wait'} loadingDescription={'Data Fetching...'} />
+    )
+  }
 
   return (
     <BackgroundLines className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden bg-black">

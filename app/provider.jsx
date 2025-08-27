@@ -91,13 +91,42 @@ const Provider = ({ children }) => {
     }
 
     const updateUserName = async (name) => {
-        if (!user?.id || !name.trim()) return false;
+        console.log('Current user state:', user);
+
+        // Get fresh user data if context user is null
+        let userToUpdate = user;
+
+        if (!userToUpdate || !userToUpdate.id) {
+            // Try to get user from auth and database
+            try {
+                const { data: { user: authUser } } = await supabase.auth.getUser();
+
+                if (authUser) {
+                    let { data: dbUser, error: dbError } = await supabase
+                        .from('Users')
+                        .select("*")
+                        .eq('email', authUser.email)
+                        .single();
+
+                    if (!dbError && dbUser) {
+                        userToUpdate = dbUser;
+                    }
+                }
+            } catch (error) {
+                console.error('Error getting fresh user data:', error);
+            }
+        }
+
+        if (!userToUpdate?.id || !name.trim()) {
+            console.error('No user ID found or name is empty');
+            return false;
+        }
 
         try {
             const { data, error } = await supabase
                 .from('Users')
                 .update({ name: name.trim() })
-                .eq('id', user.id)
+                .eq('id', userToUpdate.id)
                 .select()
                 .single();
 
@@ -120,7 +149,7 @@ const Provider = ({ children }) => {
             console.error('Error updating user name:', error);
             return false;
         }
-    }
+    };
 
     return (
         <UserDetailContext.Provider value={{

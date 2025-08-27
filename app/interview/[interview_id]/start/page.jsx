@@ -11,9 +11,9 @@ import { useParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/services/supaBaseClient';
 
-const startInterview = () => {
+const StartInterview = () => {
     const { interviewInfo, setInterviewInfo } = useContext(InterviewDataContext);
-    const vapi = new Vapi(process.env.NEXT_PUBLIC_VAPI_PUBLIC_KEY);
+    const vapi = new Vapi(process.env.NEXT_PUBLIC_VAPI_PUBLIC_KEY_HINDI);
     const [activeUser, setActiveUser] = useState(false);
     const [conversation, setConversation] = useState();
     const { interview_id } = useParams();
@@ -22,8 +22,9 @@ const startInterview = () => {
     const [isCallActive, setIsCallActive] = useState(false);
     const [isMuted, setIsMuted] = useState(false);
     const [timer, setTimer] = useState(0);
-    const [volume, setVolume] = useState(0.8); // Volume from 0 to 1
+    const [volume, setVolume] = useState(0.8);
     const [showVolumeSlider, setShowVolumeSlider] = useState(false);
+    const [callStarting, setCallStarting] = useState(false);
 
     // Timer effect
     useEffect(() => {
@@ -44,11 +45,6 @@ const startInterview = () => {
         return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     };
 
-    // Don't auto-start call, let user manually start
-    // useEffect(() => {
-    //     interviewInfo && startCall();
-    // }, [interviewInfo])
-
     useEffect(() => {
         const handleMessage = (message) => {
             console.log('Message', message);
@@ -58,139 +54,325 @@ const startInterview = () => {
                 setConversation(convoString);
             }
         }
-        vapi.on('message', handleMessage);
 
-        vapi.on('call-start', () => {
-            console.log('Call started')
+        const handleCallStart = () => {
+            console.log('Call started');
             setIsCallActive(true);
-            setTimer(0); // Reset timer
+            setCallStarting(false);
+            setTimer(0);
             toast.success('Interview Started Successfully!');
-        });
+        };
 
-        vapi.on('speech-start', () => {
-            console.log('AI started speaking')
-            setActiveUser(false);
-        });
-
-        vapi.on('speech-end', () => {
-            console.log('AI finished speaking');
-            setActiveUser(true);
-        });
-
-        vapi.on('call-end', () => {
-            console.log('Call ended')
+        const handleCallEnd = () => {
+            console.log('Call ended');
             setIsCallActive(false);
+            setCallStarting(false);
             setActiveUser(false);
             toast.success('Interview Completed');
-        });
+        };
 
-        // Handle volume changes
-        vapi.on('volume-change', (volumeLevel) => {
-            setVolume(volumeLevel);
-        });
+        const handleSpeechStart = () => {
+            console.log('AI started speaking');
+            setActiveUser(false);
+        };
+
+        const handleSpeechEnd = () => {
+            console.log('AI finished speaking');
+            setActiveUser(true);
+        };
+
+        const handleError = (error) => {
+            console.error('VAPI Error:', error);
+            setCallStarting(false);
+            setIsCallActive(false);
+            toast.error('Failed to start interview. Please try again.');
+        };
+
+        // Register event handlers
+        vapi.on('message', handleMessage);
+        vapi.on('call-start', handleCallStart);
+        vapi.on('call-end', handleCallEnd);
+        vapi.on('speech-start', handleSpeechStart);
+        vapi.on('speech-end', handleSpeechEnd);
+        vapi.on('error', handleError);
 
         return () => {
-            vapi.off("message", handleMessage);
-            vapi.off("call-start", () => console.log("END"));
-            vapi.off("call-end", () => console.log("END"));
-            vapi.off("speech-start", () => console.log("END"));
-            vapi.off("speech-end", () => console.log("END"));
+            // Cleanup event listeners
+            vapi.off('message', handleMessage);
+            vapi.off('call-start', handleCallStart);
+            vapi.off('call-end', handleCallEnd);
+            vapi.off('speech-start', handleSpeechStart);
+            vapi.off('speech-end', handleSpeechEnd);
+            vapi.off('error', handleError);
         }
-    })
+    }, []);
 
-
-    // helper function for Deepgram
+    // Helper functions
     function getDeepgramLangCode(lang) {
-        if (!lang) return "en-US"; // default
+        if (!lang) return "en-US";
         switch (lang.toLowerCase()) {
             case "english":
                 return "en-US";
             case "hindi":
-                return "hi-IN";  // deepgram Hindi support code
+                return "hi-IN";
+            case "hinglish":
+                return "hi-IN";
             default:
                 return "en-US";
         }
     }
 
-    // helper function for PlayHT (voice selection)
     function getPlayhtVoice(lang) {
-        if (!lang) return "jennifer"; // default english voice
+        if (!lang) return "jennifer";
         switch (lang.toLowerCase()) {
             case "english":
-                return "jennifer";  // or any english voiceId
+                return "jennifer";
             case "hindi":
-                return "ananya";   // PlayHT hindi female voice (example)
+                return "ananya";
+            case "hinglish":
+                return "ananya";
             default:
                 return "jennifer";
         }
     }
 
-    const startCall = () => {
+    function getSystemPrompt(language, interviewInfo, questionList) {
+        const jobPosition = interviewInfo?.interviewData?.jobPosition || "this position";
+        const userName = interviewInfo?.userName || "Candidate";
+        console.log("username", userName);
+
+        switch (language.toLowerCase()) {
+            case "hindi":
+                return `
+आप एक professional AI voice assistant हैं जो interviews conduct करते हैं। आपका काम है candidates को दिए गए interview questions पूछना और उनके responses को assess करना।
+
+Interview की शुरुआत इस तरह करें:
+"नमस्ते ${userName}! आपका ${jobPosition} position के लिए interview में स्वागत है। मैं आपका AI interviewer हूँ। क्या आप तैयार हैं?"
+
+महत्वपूर्ण निर्देश:
+- एक समय में सिर्फ एक question पूछें
+- Candidate के response का पूरा इंतज़ार करें
+- Questions को clear और professional रखें
+- Natural conversation maintain करें
+
+यहाँ हैं questions जो एक-एक करके पूछने हैं:
+${questionList}
+
+Response Guidelines:
+- अगर candidate struggle कर रहा है, तो supportive hints दें
+- हर answer के बाद brief acknowledgment दें: "अच्छा", "समझ गया", "बहुत बढ़िया"
+- Encouraging लेकिन professional tone maintain करें
+- Follow-up questions पूछें जहाँ appropriate हो
+
+Interview को 5-7 questions के बाद professionally conclude करें:
+"धन्यवाद ${userName}! आपने बहुत अच्छे answers दिए हैं। हमारी team आपसे जल्दी contact करेगी।"
+
+Key Guidelines:
+✅ Professional yet friendly tone
+✅ Clear Hindi pronunciation
+✅ Appropriate pauses between questions
+✅ Encouraging feedback
+✅ पूरी बातचीत Hindi में करें
+`.trim();
+
+            case "english":
+                return `
+You are a professional AI voice assistant conducting job interviews. Your role is to ask candidates the provided interview questions and assess their responses professionally.
+
+Begin the interview with:
+"Hello ${userName}! Welcome to your ${jobPosition} interview. I'm your AI interviewer today. Are you ready to get started?"
+
+Core Instructions:
+- Ask ONE question at a time
+- Wait completely for the candidate's response before proceeding
+- Keep questions clear and professional
+- Maintain natural conversation flow
+
+Here are the questions to ask sequentially:
+${questionList}
+
+Response Guidelines:
+- If candidate struggles, provide supportive hints without giving away answers
+- Acknowledge each answer briefly: "Great", "I understand", "Excellent point"
+- Maintain encouraging yet professional tone
+- Ask follow-up questions when appropriate
+
+Conclude professionally after 5-7 questions:
+"Thank you ${userName}! You've provided some excellent insights. Our team will be in touch with you soon."
+
+Key Guidelines:
+✅ Professional, clear English
+✅ Appropriate pacing and pauses
+✅ Encouraging feedback
+✅ Stay focused on interview objectives
+✅ Maintain warm but professional demeanor
+`.trim();
+
+            case "hinglish":
+                return `
+आप एक professional AI interviewer हैं। आप Hindi और English दोनों mix करके naturally बात कर सकते हैं।
+
+Interview start करें:
+"Hello ${userName}! Welcome to your ${jobPosition} का interview। Main आपका AI interviewer हूँ। Ready हैं आप?"
+
+Instructions:
+- एक time पर एक ही question पूछें
+- Candidate का complete response wait करें
+- Natural Hinglish use करें जैसे normally बोलते हैं
+
+Questions:
+${questionList}
+
+Response style:
+- "Achha, very good!", "Bilkul right!", "Great answer!"
+- Supportive hints दें अगर need हो
+- Natural conversation maintain करें
+- Mix Hindi-English comfortably
+
+Conclude करें:
+"Thank you ${userName}! Bahut achhe answers दिए हैं आपने। Team आपको soon contact करेगी।"
+
+Key Guidelines:
+✅ Natural Hinglish flow
+✅ Professional yet friendly
+✅ Clear pronunciation दोनों languages में
+✅ Encouraging feedback
+`.trim();
+
+            default:
+                return `
+You are a professional AI interviewer conducting a ${jobPosition} interview with ${userName}.
+
+Ask questions one by one from: ${questionList}
+
+Maintain professional, encouraging tone throughout.
+`.trim();
+        }
+    }
+
+    const startCall = async () => {
+        // Validation checks
         if (!interviewInfo) {
             toast.error('Interview information not loaded');
             return;
         }
 
-        let questionList = "";
-        interviewInfo?.interviewData?.questionList.forEach((item, index) => {
-            questionList += item?.question + ", ";
-        });
-        console.log('Starting call with questions:', questionList);
+        const vapiKey = process.env.NEXT_PUBLIC_VAPI_PUBLIC_KEY_HINDI;
+        if (!vapiKey) {
+            toast.error('VAPI key not found. Please check your environment variables.');
+            return;
+        }
 
-        const assistantOptions = {
-            name: "AI Recruiter",
-            firstMessage: "Hi " + interviewInfo?.userName + ", how are you? Ready for your interview for the " + interviewInfo?.interviewData?.jobPosition + " position?",
-            transcriber: {
-                provider: "deepgram",
-                model: "nova-2",
-                language: getDeepgramLangCode(interviewInfo?.interviewData?.language),
-            },
-            voice: {
-                provider: "playht",
-                voiceId: getPlayhtVoice(interviewInfo?.interviewData?.language),
-            },
-            model: {
-                provider: "openai",
-                model: "gpt-4",
-                messages: [
-                    {
-                        role: "system",
-                        content: `
-You are an AI voice assistant conducting interviews.
-Your job is to ask candidates provided interview questions, assess their responses.
-Begin the conversation with a friendly introduction, setting a relaxed yet professional tone. Example:
-"Hey there! Welcome to your ${interviewInfo?.interviewData?.jobPosition} interview. Let's get started with a few questions!"
-Ask one question at a time and wait for the candidate's response before proceeding. Keep the questions clear and concise. Below Are the questions ask one by one:
-Questions: ${questionList}
-If the candidate struggles, offer hints or rephrase the question without giving away the answer. Example:
-"Need a hint? Think about how React tracks component updates!"
-Provide brief, encouraging feedback after each answer. Example:
-"Nice! That's a solid answer."
-"Hmm, not quite! Want to try again?"
-Keep the conversation natural and engaging—use casual phrases like "Alright, next up..." or "Let's tackle a tricky one!"
-After 5-7 questions, wrap up the interview smoothly by summarizing their performance. Example:
-"That was great! You handled some tough questions well. Keep sharpening your skills!"
-End on a positive note:
-"Thanks for chatting! Hope to see you crushing projects soon!"
-Key Guidelines:
-✅ Be friendly, engaging, and witty 🎤
-✅ Keep responses short and natural, like a real conversation
-✅ Adapt based on the candidate's confidence level
-✅ Ensure the interview remains focused on the topic
-`.trim(),
-                    },
-                ],
-            },
-        };
+        // Check if already starting or active
+        if (callStarting || isCallActive) {
+            return;
+        }
+
+        setCallStarting(true);
+        toast.info('Starting interview...');
 
         try {
-            vapi.start(assistantOptions);
-            console.log('Vapi.start() called successfully');
+            console.log('=== VAPI Call Debug Info ===');
+            console.log('VAPI Key exists:', !!vapiKey);
+            console.log('VAPI Key length:', vapiKey.length);
+            console.log('Interview Info:', {
+                userName: interviewInfo?.userName,
+                jobPosition: interviewInfo?.interviewData?.jobPosition,
+                language: interviewInfo?.interviewData?.language
+            });
+
+            // Generate question list
+            let questionList = "";
+            if (interviewInfo?.interviewData?.questionList && interviewInfo.interviewData.questionList.length > 0) {
+                interviewInfo.interviewData.questionList.forEach((item, index) => {
+                    questionList += `${index + 1}. ${item?.question}\n`;
+                });
+            } else {
+                // Default questions based on language
+                const language = interviewInfo?.interviewData?.language || "english";
+                if (language.toLowerCase() === "hindi") {
+                    questionList = "1. अपने बारे में बताएं\n2. आपकी सबसे बड़ी शक्ति क्या है?\n3. आप यह नौकरी क्यों चाहते हैं?\n";
+                } else {
+                    questionList = "1. Tell me about yourself\n2. What are your greatest strengths?\n3. Why do you want this position?\n";
+                }
+            }
+
+            const language = interviewInfo?.interviewData?.language || "english";
+            const userName = interviewInfo?.userName || "Candidate";
+            const jobPosition = interviewInfo?.interviewData?.jobPosition || "this position";
+
+            // Language-specific first messages
+            const getFirstMessage = (lang) => {
+                switch (lang.toLowerCase()) {
+                    case "hindi":
+                        return `नमस्ते ${userName}! मैं आपका AI interviewer हूँ। ${jobPosition} position के लिए आपके interview में आपका स्वागत है। क्या आप ready हैं?`;
+                    case "hinglish":
+                        return `Hello ${userName}! Main आपका AI interviewer हूँ। ${jobPosition} position के लिए interview start करते हैं। Ready हैं?`;
+                    case "english":
+                        return `Hello ${userName}! I'm your AI interviewer. Welcome to your ${jobPosition} interview. Are you ready to begin?`;
+                    default:
+                        return `Hi ${userName}, I'm your AI interviewer. Ready for your ${jobPosition} interview?`;
+                }
+            };
+
+            // Minimal working configuration
+            const assistantOptions = {
+                model: {
+                    provider: "openai",
+                    model: "gpt-3.5-turbo",
+                    messages: [
+                        {
+                            role: "system",
+                            content: getSystemPrompt(language, interviewInfo, questionList)
+                        }
+                    ]
+                },
+                voice: {
+                    provider: "11labs",
+                    voiceId: "8FsOrsZSELg9otqX9nPu" // Default English voice
+                },
+                firstMessage: getFirstMessage(language)
+            };
+
+            console.log('Assistant Configuration:', JSON.stringify(assistantOptions, null, 2));
+
+            // Start the call with minimal config first
+            console.log('Attempting to start VAPI call...');
+            const result = await vapi.start(assistantOptions);
+            console.log('✅ Call started successfully:', result);
+
         } catch (error) {
-            console.error('Error starting call:', error);
-            toast.error('Failed to start interview');
+            console.error('❌ Detailed error starting call:', error);
+
+            // Log the full error details
+            if (error.response) {
+                console.error('Error status:', error.response.status);
+                console.error('Error data:', error.response.data);
+                console.error('Error headers:', error.response.headers);
+            } else {
+                console.error('No response object:', error.message);
+            }
+
+            setCallStarting(false);
+
+            // More specific error messages based on response
+            if (error.response?.status === 400) {
+                const errorMessage = error.response?.data?.message || 'Invalid configuration';
+                toast.error(`Configuration error: ${errorMessage}`);
+                console.error('400 Error details:', error.response.data);
+            } else if (error.response?.status === 401) {
+                toast.error('Authentication error: Invalid VAPI key');
+            } else if (error.response?.status === 403) {
+                toast.error('Access denied: Check your VAPI permissions');
+            } else if (error.response?.status === 429) {
+                toast.error('Rate limit exceeded: Please try again later');
+            } else if (!error.response) {
+                toast.error('Network error: Please check your internet connection');
+            } else {
+                toast.error('Failed to start interview. Please check console for details.');
+            }
         }
-    }
+    };
 
     const toggleMute = () => {
         if (!isCallActive) return;
@@ -212,11 +394,9 @@ Key Guidelines:
     const handleVolumeChange = (newVolume) => {
         setVolume(newVolume);
         try {
-            // Set volume (0.0 to 1.0)
             if (vapi.setVolume) {
                 vapi.setVolume(newVolume);
             }
-            // Alternative: adjust audio element volume if available
             const audioElements = document.querySelectorAll('audio');
             audioElements.forEach(audio => {
                 audio.volume = newVolume;
@@ -227,21 +407,27 @@ Key Guidelines:
     };
 
     const stopInterview = () => {
-        vapi.stop();
-        GenrateFeedBack();
+        try {
+            vapi.stop();
+            generateFeedback();
+        } catch (error) {
+            console.error('Error stopping interview:', error);
+            toast.error('Error ending interview');
+        }
     }
 
-    const GenrateFeedBack = async () => {
+    const generateFeedback = async () => {
         setLoading(true);
 
         try {
             const result = await axios.post('/api/ai-feedback', {
-                conversation: conversation
+                conversation: conversation,
+                interviewData: interviewInfo?.interviewData,
+                userName: interviewInfo?.userName
             });
 
             console.log(result?.data);
 
-            // Extract only JSON part
             const Content = result?.data.content;
             const jsonMatch = Content.match(/```json([\s\S]*?)```/);
             const rawJSON = jsonMatch ? jsonMatch[1].trim() : Content;
@@ -299,6 +485,9 @@ Key Guidelines:
                             <p className='text-gray-600 dark:text-gray-400'>
                                 {interviewInfo?.interviewData?.jobPosition} Position Interview
                             </p>
+                            <p className='text-sm text-gray-500 dark:text-gray-500 mt-1'>
+                                Language: {interviewInfo?.interviewData?.language?.charAt(0).toUpperCase() + interviewInfo?.interviewData?.language?.slice(1) || "English"}
+                            </p>
                         </div>
 
                         <div className='flex items-center gap-3 bg-gray-100 dark:bg-gray-700 px-4 py-2 rounded-lg'>
@@ -335,7 +524,7 @@ Key Guidelines:
 
                             <div className='text-center'>
                                 <h3 className='text-xl font-semibold text-gray-900 dark:text-white mb-2'>
-                                    AI Recruiter
+                                    AI Professional Recruiter
                                 </h3>
                                 <div className='flex items-center justify-center gap-2'>
                                     <div className={`w-2 h-2 rounded-full ${!activeUser && isCallActive ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`} />
@@ -382,20 +571,28 @@ Key Guidelines:
                 {/* Controls */}
                 <div className='bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 transition-colors duration-300'>
                     <div className='flex items-center justify-center gap-6 mb-6'>
-                        {/* Start Interview Button (only show if call not active) */}
+                        {/* Start Interview Button */}
                         {!isCallActive && !loading && (
                             <button
                                 onClick={startCall}
-                                className='group relative h-16 w-16 bg-green-500 hover:bg-green-600 text-white rounded-full flex items-center justify-center transition-all duration-300 transform hover:scale-110 shadow-xl shadow-green-500/40'
+                                disabled={callStarting}
+                                className={`group relative h-16 w-16 rounded-full flex items-center justify-center transition-all duration-300 transform hover:scale-110 shadow-xl ${callStarting
+                                    ? 'bg-gray-400 cursor-not-allowed'
+                                    : 'bg-green-500 hover:bg-green-600 shadow-green-500/40'
+                                    } text-white`}
                             >
-                                <Phone className='h-7 w-7' />
+                                {callStarting ? (
+                                    <Loader2Icon className='h-7 w-7 animate-spin' />
+                                ) : (
+                                    <Phone className='h-7 w-7' />
+                                )}
                                 <span className='absolute -bottom-10 left-1/2 transform -translate-x-1/2 text-xs text-gray-600 dark:text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap'>
-                                    Start Interview
+                                    {callStarting ? 'Starting...' : 'Start Interview'}
                                 </span>
                             </button>
                         )}
 
-                        {/* Mute Button (only show if call is active) */}
+                        {/* Mute Button */}
                         {isCallActive && (
                             <button
                                 onClick={toggleMute}
@@ -415,7 +612,7 @@ Key Guidelines:
                             </button>
                         )}
 
-                        {/* End Call Button (only show if call is active) */}
+                        {/* End Call Button */}
                         {isCallActive && !loading && (
                             <button
                                 onClick={stopInterview}
@@ -448,7 +645,6 @@ Key Guidelines:
                                     </span>
                                 </button>
 
-                                {/* Volume Slider */}
                                 {showVolumeSlider && (
                                     <div className='absolute -top-20 left-1/2 transform -translate-x-1/2 bg-white dark:bg-gray-700 p-3 rounded-lg shadow-lg border dark:border-gray-600'>
                                         <input
@@ -468,12 +664,18 @@ Key Guidelines:
                             </div>
                         )}
                     </div>
+
                     {/* Status Text */}
                     <div className='text-center'>
                         {loading ? (
                             <p className='text-blue-600 dark:text-blue-400 font-medium flex items-center justify-center gap-2'>
                                 <Loader2Icon className='h-4 w-4 animate-spin' />
                                 Generating Feedback...
+                            </p>
+                        ) : callStarting ? (
+                            <p className='text-orange-600 dark:text-orange-400 font-medium flex items-center justify-center gap-2'>
+                                <Loader2Icon className='h-4 w-4 animate-spin' />
+                                Initializing Interview...
                             </p>
                         ) : isCallActive ? (
                             <p className='text-green-600 dark:text-green-400 font-medium flex items-center justify-center gap-2'>
@@ -483,7 +685,7 @@ Key Guidelines:
                         ) : (
                             <div className='space-y-2'>
                                 <p className='text-gray-900 dark:text-white font-medium'>
-                                    Ready to Start Interview
+                                    Ready to Start Professional Interview
                                 </p>
                                 <p className='text-sm text-gray-500 dark:text-gray-400'>
                                     Click the green button to begin
@@ -503,20 +705,39 @@ Key Guidelines:
                             <p className='text-sm text-gray-500 dark:text-gray-400'>
                                 Make sure your microphone is working and you're in a quiet environment
                             </p>
-                            <div className='bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 max-w-md mx-auto'>
-                                <p className='text-xs text-blue-700 dark:text-blue-300'>
-                                    <strong>Tip:</strong> Speak clearly and take your time to think before answering
-                                </p>
+                            <div className='bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 max-w-2xl mx-auto'>
+                                <div className='grid grid-cols-1 md:grid-cols-3 gap-4 text-xs text-blue-700 dark:text-blue-300'>
+                                    <div className='text-center'>
+                                        <strong>📝 Professional Tips:</strong>
+                                        <p className='mt-1'>Speak clearly and take your time</p>
+                                    </div>
+                                    <div className='text-center'>
+                                        <strong>🎯 Language:</strong>
+                                        <p className='mt-1'>{interviewInfo?.interviewData?.language?.charAt(0).toUpperCase() + interviewInfo?.interviewData?.language?.slice(1) || "English"}</p>
+                                    </div>
+                                    <div className='text-center'>
+                                        <strong>⏱️ Duration:</strong>
+                                        <p className='mt-1'>Max 30 minutes</p>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     ) : (
                         <div className='space-y-2'>
                             <p className='text-sm text-gray-500 dark:text-gray-400'>
-                                Your interview is being recorded and will be automatically analyzed
+                                Your interview is being professionally recorded and analyzed
                             </p>
                             <p className='text-xs text-gray-400 dark:text-gray-500'>
                                 Use the mute button if you need a moment to think
                             </p>
+                            <div className='flex justify-center items-center gap-4 mt-4'>
+                                <div className='text-xs text-gray-500'>
+                                    Questions: {interviewInfo?.interviewData?.questionList?.length || 'Default'}
+                                </div>
+                                <div className='text-xs text-gray-500'>
+                                    Language: {interviewInfo?.interviewData?.language?.charAt(0).toUpperCase() + interviewInfo?.interviewData?.language?.slice(1) || "English"}
+                                </div>
+                            </div>
                         </div>
                     )}
                 </div>
@@ -525,4 +746,4 @@ Key Guidelines:
     )
 }
 
-export default startInterview
+export default StartInterview

@@ -15,8 +15,10 @@ const UserStatus = () => {
     }, [userObj])
 
     const user = userObj?.user;
+    console.log("user credits", user?.credits);
     const creditsUsed = 3 - (user?.credits || 0);
     const progressValue = (creditsUsed / 100) * 100;
+
 
 
     return (

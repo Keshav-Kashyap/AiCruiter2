@@ -1,55 +1,6 @@
 import React from 'react';
-import { ArrowLeft } from 'lucide-react';
-import InputField from './InputField';
-import LoadingButton from './LoadingButton';
-
-const BackButton = ({ onClick }) => (
-    <button
-        onClick={onClick}
-        className="flex items-center text-gray-400 hover:text-white transition-colors mb-4 self-start text-sm md:text-base"
-    >
-        <ArrowLeft className="w-4 h-4 mr-2" />
-        Back
-    </button>
-);
-
-const MaskedContact = ({ activeTab, email, phone }) => {
-    const maskedValue = activeTab === 'email'
-        ? email.replace(/(.{2})(.*)(@.*)/, '$1***$3')
-        : `+91 ${phone.replace(/(.{2})(.{6})(.{2})/, '$1******$3')}`;
-
-    return (
-        <div className="text-center">
-            <p className="text-gray-300 text-sm">
-                Code sent to{' '}
-                <span className="text-white font-medium">
-                    {maskedValue}
-                </span>
-            </p>
-        </div>
-    );
-};
-
-const ResendTimer = ({ timer, onResend, isLoading }) => (
-    <div className="text-center">
-        {timer > 0 ? (
-            <p className="text-gray-400 text-sm">
-                Resend OTP in <span className="text-white font-mono">{timer}s</span>
-            </p>
-        ) : (
-            <button
-                onClick={onResend}
-                disabled={isLoading}
-                className="text-blue-400 hover:text-blue-300 text-sm font-medium transition-colors disabled:opacity-50"
-            >
-                Resend OTP
-            </button>
-        )}
-    </div>
-);
 
 const OTPForm = ({
-    activeTab,
     formData,
     errors,
     isLoading,
@@ -60,42 +11,84 @@ const OTPForm = ({
     goBack
 }) => {
     return (
-        <>
-            <BackButton onClick={goBack} />
-
-            <div className="space-y-6 w-full">
-                <MaskedContact
-                    activeTab={activeTab}
-                    email={formData.email}
-                    phone={formData.phone}
-                />
-
-                <InputField
-                    type="text"
-                    placeholder="Enter 6-digit OTP"
-                    value={formData.otp}
-                    onChange={handleOtpChange}
-                    error={errors.otp}
-                    className="text-center text-lg md:text-xl font-mono tracking-widest"
-                    maxLength="6"
-                />
-
-                <LoadingButton
-                    onClick={verifyOTP}
-                    isLoading={isLoading}
-                    disabled={isLoading || formData.otp.length !== 6}
-                    loadingText="Verifying..."
-                >
-                    Verify OTP
-                </LoadingButton>
-
-                <ResendTimer
-                    timer={timer}
-                    onResend={resendOTP}
-                    isLoading={isLoading}
-                />
+        <div className="space-y-6">
+            {/* Email Display */}
+            <div className="text-center p-4 bg-blue-50 rounded-lg">
+                <p className="text-sm text-gray-600">
+                    Verification code sent to
+                </p>
+                <p className="font-medium text-gray-900">
+                    {formData.email}
+                </p>
             </div>
-        </>
+
+            {/* OTP Input */}
+            <div>
+                <label htmlFor="otp" className="block text-sm font-medium text-gray-700 mb-2">
+                    Enter 6-digit code
+                </label>
+                <input
+                    id="otp"
+                    type="text"
+                    value={formData.otp}
+                    onChange={(e) => handleOtpChange(e.target.value)}
+                    placeholder="000000"
+                    maxLength={6}
+                    className={`w-full px-3 py-3 text-center text-2xl font-mono border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.otp ? 'border-red-500' : 'border-gray-300'
+                        }`}
+                    disabled={isLoading}
+                />
+                {errors.otp && (
+                    <p className="text-red-500 text-sm mt-1">{errors.otp}</p>
+                )}
+            </div>
+
+            {/* Timer */}
+            {timer > 0 && (
+                <div className="text-center">
+                    <p className="text-sm text-gray-600">
+                        Resend code in <span className="font-medium text-blue-600">{timer}s</span>
+                    </p>
+                </div>
+            )}
+
+            {/* Verify Button */}
+            <button
+                onClick={verifyOTP}
+                disabled={isLoading || formData.otp.length !== 6}
+                className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+                {isLoading ? (
+                    <div className="flex items-center justify-center">
+                        <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent mr-2"></div>
+                        Verifying...
+                    </div>
+                ) : (
+                    'Verify Code'
+                )}
+            </button>
+
+            {/* Resend and Back Options */}
+            <div className="flex flex-col space-y-3">
+                {timer === 0 && (
+                    <button
+                        onClick={resendOTP}
+                        disabled={isLoading}
+                        className="text-blue-600 hover:text-blue-700 font-medium disabled:opacity-50"
+                    >
+                        Resend verification code
+                    </button>
+                )}
+
+                <button
+                    onClick={goBack}
+                    disabled={isLoading}
+                    className="text-gray-500 hover:text-gray-700 font-medium disabled:opacity-50"
+                >
+                    ← Change email address
+                </button>
+            </div>
+        </div>
     );
 };
 
