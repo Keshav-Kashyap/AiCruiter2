@@ -1,5 +1,7 @@
 import { BriefcaseBusinessIcon, Calendar, Code2Icon, Crown, LayoutDashboard, List, Puzzle, Settings, User2Icon, WalletCards, Users, Zap } from "lucide-react";
-
+import { SiAdobeacrobatreader } from "react-icons/si";
+import { RiNetflixFill } from "react-icons/ri";
+import { FaGoogle, FaMicrosoft, FaFacebook, FaAmazon, FaPhone, FaPaypal, FaApple } from "react-icons/fa";
 export const SideBarOptions = [
     {
         name: 'Dashboard',
@@ -206,3 +208,47 @@ export function getAvatarColor(name = '') {
 export function getInitial(name = '') {
     return name.charAt(0).toUpperCase();
 }
+
+
+export const companySelected=[
+        {
+      title:  "Google",
+      icon:FaGoogle,
+      
+        },
+         {
+      title:  "Microsoft",
+      icon:FaMicrosoft,
+      
+        },
+         {
+      title:  "Amazon",
+      icon:FaAmazon,
+      
+        },
+         {
+      title:  "Facebook",
+      icon:FaFacebook,
+      
+        },
+         {
+      title:  "Paypal",
+      icon:FaPaypal,
+      
+        },
+         {
+      title:  "Adobe",
+      icon:SiAdobeacrobatreader,
+      
+        },
+        
+        
+         {
+      title:  "Netflix",
+      icon: RiNetflixFill,
+      
+        },
+
+        
+     
+]

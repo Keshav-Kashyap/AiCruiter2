@@ -6,6 +6,9 @@ import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useUser } from "./provider";
 import Loading from "@/components/Loading";
+import { SparklesPreview } from "@/components/LandingHeroName";
+import { SparklesPreviewbg } from "@/components/StarBackGround"
+import { ContainerTextFlip } from "@/components/ui/ContainerTextFlip";
 
 
 
@@ -102,23 +105,9 @@ export default function HeroSectionOne() {
   }
 
   return (
-    <BackgroundLines className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden bg-black">
-
-      {/* Floating Orbs */}
-      <div
-        className="absolute top-20 left-20 w-72 h-72 bg-blue-400/20 rounded-full blur-3xl animate-pulse"
-        style={{
-          animation: 'float1 8s ease-in-out infinite'
-        }}
-      />
-      <div
-        className="absolute bottom-20 right-20 w-96 h-96 bg-purple-400/20 rounded-full blur-3xl animate-pulse"
-        style={{
-          animation: 'float2 10s ease-in-out infinite'
-        }}
-      />
-
-      <Navbar onDashboard={onDashboard} />
+  <>
+  <SparklesPreviewbg>  
+        <Navbar onDashboard={onDashboard} />
 
 
       <div className="relative z-10 px-4 py-20 max-w-6xl mt-20 mx-auto">
@@ -126,7 +115,7 @@ export default function HeroSectionOne() {
 
 
         {/* Main Heading */}
-        <div className="opacity-0 animate-fadeInUp" style={{ animationDelay: '0.1s' }}>
+        {/* <div className="opacity-0 animate-fadeInUp" style={{ animationDelay: '0.1s' }}>
           <h1 className="relative mx-auto max-w-5xl text-center text-4xl font-bold tracking-tight text-slate-100 md:text-6xl lg:text-7xl">
             Your Personal{" "}
             <span className="relative">
@@ -136,7 +125,18 @@ export default function HeroSectionOne() {
               <div className="absolute -bottom-2 left-0 right-0 h-1 bg-gradient-to-r from-blue-400 via-purple-400 to-indigo-400 rounded-full animate-scaleX" />
             </span>
           </h1>
-        </div>
+        </div> */}
+
+        <h2 className="text-center">
+          <ContainerTextFlip
+          words={[
+            "Your Personal AI Recruiter",
+            "Smarter Hiring Assistant",
+            "Future of Recruitment",
+            "Talent Matchmaker"
+          ]}
+        />
+</h2>
 
         {/* Subtitle */}
         <p className="relative mx-auto max-w-2xl py-8 text-center text-lg font-normal leading-relaxed text-slate-300 md:text-xl opacity-0 animate-fadeInUp"
@@ -257,8 +257,13 @@ export default function HeroSectionOne() {
         </div>
       </div>
 
+</SparklesPreviewbg>
 
-    </BackgroundLines>
+   
+
+   </>
+
+
   );
 }
 
