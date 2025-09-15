@@ -1,4 +1,4 @@
-import { BriefcaseBusinessIcon, Calendar, Code2Icon, Crown, LayoutDashboard, List, Puzzle, Settings, User2Icon, WalletCards, Users, Zap } from "lucide-react";
+import { BriefcaseBusinessIcon, Calendar, Code2Icon, Crown, LayoutDashboard, List, Puzzle, Settings, User2Icon, WalletCards, Users, Zap, MoreHorizontal } from "lucide-react";
 import { SiAdobeacrobatreader } from "react-icons/si";
 import { RiNetflixFill } from "react-icons/ri";
 import { FaGoogle, FaMicrosoft, FaFacebook, FaAmazon, FaPhone, FaPaypal, FaApple } from "react-icons/fa";
@@ -58,7 +58,8 @@ export const InterviewType = [
 export const QUESTION_PROMPT = `You are an expert technical interviewer.
 Based on the following inputs, generate a well-structured list of high-quality interview questions:
 Job Title: {{jobTitle}}
-Job Description: {{jobDescription}}
+Job Description: {{jobDescription}
+CompanyName:{{companyName}}
 Interview Duration: {{duration}}
 Interview Type: {{type}}
 Interview Language: {{language}}
@@ -246,6 +247,11 @@ export const companySelected=[
          {
       title:  "Netflix",
       icon: RiNetflixFill,
+      
+        },
+        {
+      title:  "Other",
+      icon:MoreHorizontal,
       
         },
 
