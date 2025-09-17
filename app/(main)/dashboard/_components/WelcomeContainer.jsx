@@ -25,6 +25,11 @@ const WelcomeContainer = () => {
         }
     }, [user]);
 
+      useEffect(() => {
+    router.prefetch("/settings");
+
+  }, [router]);
+
     // Show skeleton while loading
     if (loading || !user) {
         return <WelcomeContainerSkeleton />;

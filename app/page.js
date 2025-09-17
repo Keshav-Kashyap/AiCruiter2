@@ -12,12 +12,14 @@ import { ContainerTextFlip } from "@/components/ui/ContainerTextFlip";
 
 
 
+
 // Mock BackgroundLines component since it's not available 
 const BackgroundLines = ({ className, children }) => (
   <div className={className}>
     {children}
   </div>
 );
+
 
 // Mock Button component
 const Button = ({ onClick, size, className, children, onMouseEnter, onMouseLeave, variant }) => (
@@ -45,6 +47,11 @@ export default function HeroSectionOne() {
 
   const [isHovered, setIsHovered] = useState(false);
   const [currentSlide, setCurrentSlide] = useState(0);
+  
+ useEffect(() => {
+    router.prefetch("/auth");
+    router.prefetch("/dashboard");
+  }, [router]);
 
   const slides = [
     {

@@ -6,9 +6,8 @@ import { Video, Plus, Loader2, Clock, TrendingUp, ChevronRight, FileText, Calend
 import React, { useEffect, useState } from 'react'
 import InterviewCard from './InterviewCard'
 import { toast } from 'sonner'
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-
+import Link from "next/link";
 const LatestInterviewsList = () => {
     const [interviewList, setInterviewList] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -46,9 +45,7 @@ const LatestInterviewsList = () => {
         }
     }
 
-    const onCreateInterview = () => {
-        router.push('/dashboard/create-interview')
-    }
+
 
 
     const getRecentStats = () => {
@@ -162,14 +159,18 @@ const LatestInterviewsList = () => {
                                     Get started by creating your first interview. Design questions, set parameters, and begin your hiring process.
                                 </p>
 
+
+                            <Link href="/dashboard/create-interview" prefetch>
                                 <Button
 
-                                    onClick={() => onCreateInterview()}
+                                    
 
                                     className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 dark:from-blue-600 dark:to-purple-700 dark:hover:from-blue-700 dark:hover:to-purple-800 text-white font-semibold px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 border-0">
                                     <Plus className="w-5 h-5 mr-2" />
                                     Create Your First Interview
                                 </Button>
+                                </Link>
+
 
                                 {/* Getting Started Guide */}
                                 <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4 max-w-2xl">
