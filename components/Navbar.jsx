@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Menu, X } from 'lucide-react';
+import { PremiumButton } from './PremiumButton';
 
 export default function Navbar({ onDashboard }) {
     const [visible, setVisible] = useState(true);
@@ -69,17 +70,21 @@ export default function Navbar({ onDashboard }) {
         <>
             <nav
                 className={`fixed top-0 left-0 right-0 z-50 flex w-full items-center justify-between 
-         backdrop-blur-xl px-4 sm:px-6 lg:px-8 py-4 sm:py-5 animate-fadeInUp 
+          px-4 sm:px-6 lg:px-8 py-4 sm:py-5 animate-fadeInUp 
          transform transition-transform duration-500
         ${visible ? "translate-y-0" : "-translate-y-full"}`}
             >
                 {/* Logo Section */}
                 <div className="flex items-center gap-2 sm:gap-4 hover:scale-105 transition-transform duration-300">
                     <img src="/logo2.png" className='h-10 sm:h-12 lg:h-15 w-auto' alt="QRA Logo" />
-                    <h1 className="text-lg sm:text-xl lg:text-2xl font-bold bg-gradient-to-r from-blue-300 via-purple-300 to-indigo-300 bg-clip-text text-transparent whitespace-nowrap">
+                    <h1 className="text-lg sm:text-xl lg:text-2xl font-bold bg-gradient-to-b from-neutral-50 via-white/90 to-neutral-400 bg-clip-text whitespace-nowrap">
+
+
                         QRA
                     </h1>
                 </div>
+
+
 
                 {/* Desktop Navigation Links */}
                 <div className="hidden lg:flex gap-8 xl:gap-20 items-center justify-center">
@@ -87,7 +92,7 @@ export default function Navbar({ onDashboard }) {
                         <Link
                             key={link.href}
                             href={link.href}
-                            className="text-slate-300 hover:text-blue-400 transition-colors duration-200 font-medium whitespace-nowrap"
+                            className="text-slate-300 hover:text-slate-100 transition-colors duration-200 font-medium whitespace-nowrap"
                         >
                             {link.label}
                         </Link>
@@ -95,13 +100,12 @@ export default function Navbar({ onDashboard }) {
                 </div>
 
                 {/* Desktop Dashboard Button */}
-                <div className="hidden lg:flex items-center">
-                    <Button
-                        onClick={onDashboard}
-                        className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-4 xl:px-6 py-2 rounded-lg font-medium shadow-lg hover:-translate-y-0.5 transition-all duration-200 whitespace-nowrap"
-                    >
-                        Dashboard
-                    </Button>
+                <div className="hidden lg:flex items-center" >
+
+                    <PremiumButton label="Dashboard" onClick={onDashboard} />
+
+
+
                 </div>
 
                 {/* Mobile Controls */}
