@@ -33,6 +33,9 @@ const InterviewCard = ({ interview, viewDetail = false }) => {
                         style={{ backgroundColor: getAvatarColor(`${interview?.jobPosition}`) }}
                     >
                         {getInitial(`${interview?.jobPosition}`)}
+
+
+
                     </div>
 
                     {/* Status Indicator */}
@@ -52,9 +55,30 @@ const InterviewCard = ({ interview, viewDetail = false }) => {
 
             {/* Job Position Title */}
             <div className='mb-4'>
+
+                <div class='flex justify-between items-center mb-4'>
+
                 <h2 className='text-xl font-bold text-gray-900 dark:text-white mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-200'>
                     {interview?.jobPosition?.charAt(0).toUpperCase() + interview?.jobPosition?.slice(1)}
                 </h2>
+              
+
+
+                 <div className='flex items-center gap-2 bg-gray-100 dark:bg-gray-700/50 px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-600'>
+    
+                    <span className='text-sm font-semibold text-gray-700 dark:text-gray-300'>
+                       
+                       
+                        {interview?.CompanyName||"Company"}
+
+
+
+                    </span>
+                </div>
+                  </div>
+
+
+
 
                 {/* Interview Details */}
                 <div className='flex items-center justify-between'>

@@ -6,11 +6,17 @@ import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useUser } from "./provider";
 import Loading from "@/components/Loading";
+<<<<<<< HEAD
 import { Spotlight } from "@/components/ui/spotlight";
 import { PremiumButton } from "@/components/PremiumButton";
 import { HoverBorderGradient } from "@/components/ui/hover-border-gradient";
 import ImageSlider from "@/components/ImageSlider";
 import CompanyInterviewLanding from "@/components/companies";
+=======
+import { SparklesPreview } from "@/components/LandingHeroName";
+import { SparklesPreviewbg } from "@/components/StarBackGround"
+import { ContainerTextFlip } from "@/components/ui/ContainerTextFlip";
+>>>>>>> a80a136578e420496a984e6b792193e47e7b8312
 
 
 
@@ -21,6 +27,7 @@ const BackgroundLines = ({ className, children }) => (
     {children}
   </div>
 );
+
 
 // Mock Button component
 const Button = ({ onClick, size, className, children, onMouseEnter, onMouseLeave, variant }) => (
@@ -46,6 +53,16 @@ export default function HeroSectionOne() {
   const router = useRouter();
   const { user, loading } = useUser();
 
+<<<<<<< HEAD
+=======
+  const [isHovered, setIsHovered] = useState(false);
+  const [currentSlide, setCurrentSlide] = useState(0);
+  
+ useEffect(() => {
+    router.prefetch("/auth");
+    router.prefetch("/dashboard");
+  }, [router]);
+>>>>>>> a80a136578e420496a984e6b792193e47e7b8312
 
 
   const onDashboard = () => {
@@ -70,6 +87,7 @@ export default function HeroSectionOne() {
   };
 
   return (
+<<<<<<< HEAD
     <>
 
       <div className="min-h-screen w-full bg-black/[0.96] antialiased bg-grid-white/[0.02] relative flex items-center justify-center py-8 overflow-hidden">
@@ -80,16 +98,49 @@ export default function HeroSectionOne() {
 
         {/* Radial gradient overlay for depth */}
         <div className="absolute inset-0 bg-gradient-radial from-transparent via-black/50 to-black pointer-events-none"></div>
+=======
+  <>
+  <SparklesPreviewbg>  
+        <Navbar onDashboard={onDashboard} />
+>>>>>>> a80a136578e420496a984e6b792193e47e7b8312
 
 
         <Navbar onDashboard={onDashboard} />
 
+<<<<<<< HEAD
         <div className="p-4 max-w-7xl mx-auto relative z-10 w-full text-center">
           <h1 className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-bold mb-6">
             <span className="bg-gradient-to-b from-neutral-50 via-white/90 to-neutral-400 bg-clip-text text-transparent inline-block">
               Your Personal AI Job Recruiter
             </span>
           </h1>
+=======
+
+
+        {/* Main Heading */}
+        {/* <div className="opacity-0 animate-fadeInUp" style={{ animationDelay: '0.1s' }}>
+          <h1 className="relative mx-auto max-w-5xl text-center text-4xl font-bold tracking-tight text-slate-100 md:text-6xl lg:text-7xl">
+            Your Personal{" "}
+            <span className="relative">
+              <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-indigo-400 bg-clip-text text-transparent">
+                AI Interview Coach
+              </span>
+              <div className="absolute -bottom-2 left-0 right-0 h-1 bg-gradient-to-r from-blue-400 via-purple-400 to-indigo-400 rounded-full animate-scaleX" />
+            </span>
+          </h1>
+        </div> */}
+
+        <h2 className="text-center">
+          <ContainerTextFlip
+          words={[
+            "Your Personal AI Recruiter",
+            "Smarter Hiring Assistant",
+            "Future of Recruitment",
+            "Talent Matchmaker"
+          ]}
+        />
+</h2>
+>>>>>>> a80a136578e420496a984e6b792193e47e7b8312
 
           <p className="mt-6 font-normal text-sm sm:text-base md:text-lg text-neutral-300 max-w-2xl mx-auto leading-relaxed px-4">
             Connect, collaborate and celebrate from anywhere with Toking Allvez. Secure, reliable, and easy to use video conferencing solution.
@@ -122,12 +173,22 @@ export default function HeroSectionOne() {
 
       </div>
 
+<<<<<<< HEAD
       <div>
 
         <CompanyInterviewLanding />
       </div>
 
     </>
+=======
+</SparklesPreviewbg>
+
+   
+
+   </>
+
+
+>>>>>>> a80a136578e420496a984e6b792193e47e7b8312
   );
 
 

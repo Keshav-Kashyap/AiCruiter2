@@ -5,9 +5,10 @@ import { NextResponse } from "next/server";
 
 
 export async function POST(req) {
-    const { jobPosition, jobDescription, duration, type, language } = await req.json();
+    const { jobPosition, jobDescription,companyName, duration, type, language } = await req.json();
 
     console.log("jobPosition:", jobPosition);
+    console.log("companyName",companyName)
     console.log("jobDescription:", jobDescription);
     console.log("duration:", duration);
     console.log("type:", type);
@@ -16,6 +17,7 @@ export async function POST(req) {
     const FINAL_PROMPT = QUESTION_PROMPT
         .replace('{{jobTitle}}', jobPosition)
         .replace('{{jobDescription}}', jobDescription)
+        .replace('{{companyName}}', companyName)
         .replace('{{duration}}', duration)
         .replace('{{type}}', type)
         .replace('{{language}}', language);
