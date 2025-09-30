@@ -75,14 +75,19 @@ export default function Navbar({ onDashboard }) {
         ${visible ? "translate-y-0" : "-translate-y-full"}`}
             >
                 {/* Logo Section */}
-                <div className="flex items-center gap-2 sm:gap-4 hover:scale-105 transition-transform duration-300">
-                    <img src="/logo2.png" className='h-10 sm:h-12 lg:h-15 w-auto' alt="QRA Logo" />
+                <div className='flex flex-row justify-center items-center gap-2'>
+                    <div className="fw-16 h-16 p-3 bg-white/5 rounded-xl flex items-center justify-center group-hover:bg-white/10 transition-colors">
+                        <img src="/logo2.png" className='h-8 sm:h-9 lg:h-10 w-auto' alt="QRA Logo" />
+
+                    </div>
                     <h1 className="text-lg sm:text-xl lg:text-2xl font-bold bg-gradient-to-b from-neutral-50 via-white/90 to-neutral-400 bg-clip-text whitespace-nowrap">
 
 
                         QRA
                     </h1>
                 </div>
+
+
 
 
 
@@ -111,17 +116,12 @@ export default function Navbar({ onDashboard }) {
                 {/* Mobile Controls */}
                 <div className="lg:hidden flex items-center gap-2 sm:gap-3">
                     {/* Mobile Dashboard Button */}
-                    <Button
-                        onClick={onDashboard}
-                        className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-3 py-2 text-sm rounded-lg font-medium shadow-lg hover:-translate-y-0.5 transition-all duration-200 whitespace-nowrap"
-                    >
-                        Dashboard
-                    </Button>
+                    <PremiumButton label="Dashboard" onClick={onDashboard} />
 
                     {/* Mobile Menu Button */}
                     <button
                         onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                        className="menu-button p-2 text-slate-300 hover:text-blue-400 transition-colors duration-200"
+                        className="menu-button p-2 text-slate-300 hover:text-slate-100 transition-colors duration-200"
                         aria-label="Toggle mobile menu"
                     >
                         {mobileMenuOpen ? (
@@ -131,12 +131,13 @@ export default function Navbar({ onDashboard }) {
                         )}
                     </button>
                 </div>
-            </nav>
+            </nav >
 
             {/* Mobile Menu Overlay */}
-            <div
+            < div
                 className={`lg:hidden fixed inset-0 z-40 bg-black/50 backdrop-blur-sm transition-opacity duration-300 ${mobileMenuOpen ? 'opacity-100 visible' : 'opacity-0 invisible'
-                    }`}
+                    }`
+                }
             />
 
             {/* Mobile Menu */}
@@ -172,18 +173,7 @@ export default function Navbar({ onDashboard }) {
                         ))}
                     </div>
 
-                    {/* Mobile Dashboard Button */}
-                    <div className="px-6">
-                        <Button
-                            onClick={() => {
-                                onDashboard();
-                                setMobileMenuOpen(false);
-                            }}
-                            className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-3 rounded-lg font-medium shadow-lg transition-all duration-200"
-                        >
-                            Dashboard
-                        </Button>
-                    </div>
+
                 </div>
             </div>
 

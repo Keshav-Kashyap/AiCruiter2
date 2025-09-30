@@ -14,13 +14,13 @@ const PopularCompanyInterviews = () => {
         },
         {
             name: 'Microsoft',
-            logo: 'https://cdn.simpleicons.org/microsoft/white',
+            logo: './microsoft.jpg',
             category: 'Software',
             interviews: '1,800+'
         },
         {
             name: 'Amazon',
-            logo: 'https://cdn.simpleicons.org/amazon/white',
+            logo: 'https://uxwing.com/wp-content/themes/uxwing/download/brands-and-social-media/amazon-white-icon.png',
             category: 'E-commerce',
             interviews: '2,200+'
         },
@@ -50,7 +50,7 @@ const PopularCompanyInterviews = () => {
         },
         {
             name: 'IBM',
-            logo: 'https://cdn.simpleicons.org/ibm/white',
+            logo: './ibm.png',
             category: 'Technology',
             interviews: '1,300+'
         },
@@ -68,7 +68,7 @@ const PopularCompanyInterviews = () => {
         },
         {
             name: 'Adobe',
-            logo: 'https://cdn.simpleicons.org/adobe/white',
+            logo: './adove.png',
             category: 'Software',
             interviews: '800+'
         },
@@ -116,10 +116,10 @@ const PopularCompanyInterviews = () => {
                             Top Companies
                         </Badge>
                         <h2 className="text-5xl md:text-6xl font-bold text-white mb-6 tracking-tight">
-                            Popular Company Interviews
+                            Top Company Interviews
                         </h2>
                         <p className="text-xl text-gray-400 max-w-2xl mx-auto leading-relaxed">
-                            Hamare platform par top companies ke liye AI-powered interviews practice karein
+                            Prepare with AI-powered mock interviews for the world’s best companies.
                         </p>
                     </motion.div>
                 </div>
