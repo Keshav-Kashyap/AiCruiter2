@@ -41,14 +41,11 @@ export default function RootLayout({ children }) {
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <Provider>
-
           <ThemeProvider attribute="class" defaultTheme="dark">
-
             <ProgressBarLoading />
             {children}
+            <Toaster />
           </ThemeProvider>
-
-          <Toaster />
         </Provider>
       </body>
     </html>
