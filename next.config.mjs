@@ -1,8 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-    images: {
-        domains: ['lh3.googleusercontent.com']
-    }
+    distDir: "out",
+    reactStrictMode: true,
 };
 
 export default nextConfig;

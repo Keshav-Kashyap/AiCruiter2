@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "electron": "cross-env NODE_ENV=DEV electron electron/main.js",
+    "build:exe": "electron-builder"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.28.1",
@@ -36,6 +37,7 @@
     "nodemailer": "^7.0.5",
     "nprogress": "^0.2.0",
     "openai": "^5.10.2",
+    "razorpay": "^2.9.6",
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "react-icons": "^5.5.0",
@@ -46,7 +48,25 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "cross-env": "^10.1.0",
+    "electron": "^39.1.1",
+    "electron-builder": "^26.0.12",
     "tailwindcss": "^4",
     "tw-animate-css": "^1.3.5"
+  },
+  "build": {
+    "appId": "com.yourapp.desktop",
+    "productName": "MyDesktopApp",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "out/**/*",
+      "electron/**/*",
+      "electron/main.js"
+    ],
+    "win": {
+      "target": "nsis"
+    }
   }
 }
