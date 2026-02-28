@@ -11,6 +11,12 @@ import { PremiumButton } from "@/components/PremiumButton";
 import { HoverBorderGradient } from "@/components/ui/hover-border-gradient";
 import ImageSlider from "@/components/ImageSlider";
 import CompanyInterviewLanding from "@/components/companies";
+import FeaturesHighlight from "@/components/FeaturesHighlight";
+import Features from "@/components/Features";
+import Stats from "@/components/Stats";
+import InterviewTypes from "@/components/InterviewTypes";
+import CTA from "@/components/CTA";
+import HowItWorks from "@/components/HowItWorks";
 
 
 
@@ -93,7 +99,7 @@ export default function HeroSectionOne() {
           </h1>
 
           <p className="mt-6 font-normal text-sm sm:text-base md:text-lg text-neutral-300 max-w-2xl mx-auto leading-relaxed px-4">
-            Connect, collaborate and celebrate from anywhere with Toking Allvez. Secure, reliable, and easy to use video conferencing solution.
+            Practice interviews with AI-powered question generation tailored to your position. Master technical, behavioral interviews with real-time feedback, time management, and resume-based questions - all completely free!
           </p>
 
           {/* Premium action buttons */}
@@ -118,14 +124,37 @@ export default function HeroSectionOne() {
 
 
       </div>
-      <div className="bg-black">
-        <ImageSlider />
 
+      <div className="bg-black">
+        <FeaturesHighlight />
       </div>
 
-      <div>
+      <div className="bg-black">
+        <Stats />
+      </div>
 
+      <div className="bg-black">
+        <ImageSlider />
+      </div>
+
+      <div className="bg-black">
+        <InterviewTypes />
+      </div>
+
+      <div className="bg-black">
+        <Features />
+      </div>
+
+      <div className="bg-black">
         <CompanyInterviewLanding />
+      </div>
+
+      <div className="bg-black">
+        <HowItWorks />
+      </div>
+
+      <div className="bg-black">
+        <CTA onDashboard={onDashboard} />
       </div>
 
     </>

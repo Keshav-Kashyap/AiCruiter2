@@ -137,7 +137,7 @@ const PopularCompanyInterviews = () => {
                             key={index}
                             variants={itemVariants}
                             whileHover={{ y: -6 }}
-                            className="group relative bg-gradient-to-b from-white/5 to-white/[0.02] border border-white/10 rounded-2xl p-8 hover:border-white/20 hover:from-white/10 hover:to-white/5 transition-all duration-300 cursor-pointer"
+                            className="group relative bg-neutral-900/50 border border-neutral-800 rounded-2xl p-8 hover:border-neutral-700 transition-all duration-300 cursor-pointer backdrop-blur-sm hover:shadow-xl hover:shadow-blue-500/10"
                         >
                             <div className="flex items-start justify-between mb-6">
                                 <div className="w-16 h-16 bg-white/5 rounded-xl flex items-center justify-center group-hover:bg-white/10 transition-colors">
@@ -147,7 +147,7 @@ const PopularCompanyInterviews = () => {
                                         className="w-9 h-9 opacity-90"
                                     />
                                 </div>
-                                <ArrowRight className="w-5 h-5 text-gray-500 opacity-0 group-hover:opacity-100 group-hover:text-white transition-all duration-300" />
+                                <ArrowRight className="w-5 h-5 text-neutral-500 opacity-0 group-hover:opacity-100 group-hover:text-white transition-all duration-300" />
                             </div>
 
                             <h3 className="text-2xl font-semibold text-white mb-3 group-hover:text-white/90 transition-colors">
@@ -155,14 +155,14 @@ const PopularCompanyInterviews = () => {
                             </h3>
 
                             <div className="flex items-center justify-between">
-                                <span className="text-sm text-gray-500">{company.category}</span>
-                                <Badge variant="secondary" className="text-xs bg-white/5 text-gray-400 border-white/10 hover:bg-white/10">
+                                <span className="text-sm text-neutral-500">{company.category}</span>
+                                <Badge variant="secondary" className="text-xs bg-white/5 text-neutral-400 border-neutral-700 hover:bg-white/10">
                                     {company.interviews}
                                 </Badge>
                             </div>
 
                             {/* Hover Effect Gradient */}
-                            <div className="absolute inset-0 bg-gradient-to-t from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl pointer-events-none" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl pointer-events-none" />
                         </motion.div>
                     ))}
                 </motion.div>
