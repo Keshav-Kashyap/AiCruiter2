@@ -3,18 +3,18 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/services/supaBaseClient';
 import { useUser } from '@/app/provider';
-import BackgroundLayout from './_components/BackGroundLayout';
 import { useAuthValidation, useAuthTimer } from './_components/useAuthValidation';
 
 // shadcn/ui imports
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
+import { Field, FieldDescription, FieldGroup, FieldLabel, FieldSeparator } from '@/components/ui/field';
 import { ArrowLeft, Mail, CheckCircle, Loader2 } from 'lucide-react';
 import Loading from '@/components/Loading';
+import { cn } from '@/lib/utils';
 
 const Login = () => {
     const [currentStep, setCurrentStep] = useState('input'); // input, otp, userdetails, success
@@ -347,7 +347,7 @@ const Login = () => {
     const getStepDescription = () => {
         switch (currentStep) {
             case 'input':
-                return 'Sign in to your account to continue';
+                return 'Login to your AICruiter account';
             case 'otp':
                 return `We've sent a 6-digit code to ${formData.email}`;
             case 'userdetails':
@@ -360,242 +360,265 @@ const Login = () => {
     };
 
     return (
-        <BackgroundLayout>
-            <div className='flex flex-col items-center justify-center w-full max-w-md mx-auto'>
-                <Card className="w-full bg-black/20 backdrop-blur-sm border-white/10">
-                    <CardHeader className="text-center">
-                        <CardTitle className="text-white text-2xl font-bold">
-                            {getStepTitle()}
-                        </CardTitle>
-                        <CardDescription className="text-gray-300">
-                            {getStepDescription()}
-                        </CardDescription>
-                    </CardHeader>
-
-                    <CardContent className="space-y-6">
-                        {/* Success/Error Messages */}
-                        {success && (
-                            <Alert className="bg-green-500/20 border-green-500/50 text-green-100">
-                                <CheckCircle className="h-4 w-4" />
-                                <AlertDescription>{success}</AlertDescription>
-                            </Alert>
-                        )}
-
-                        {(errors.general || errors.google) && (
-                            <Alert className="bg-red-500/20 border-red-500/50 text-red-100">
-                                <AlertDescription>
-                                    {errors.general || errors.google}
-                                </AlertDescription>
-                            </Alert>
-                        )}
-
-                        {/* Success View */}
-                        {currentStep === 'success' && (
-                            <div className="text-center py-8">
-                                <CheckCircle className="w-16 h-16 text-green-400 mx-auto mb-4" />
-                                <p className="text-white text-lg">Redirecting to dashboard...</p>
-                            </div>
-                        )}
-
-                        {/* Login Form */}
-                        {currentStep === 'input' && (
-
-                            <div className="space-y-4">
-
-
-                                <Button
-                                    onClick={signInWithGoogle}
-                                    disabled={isLoading}
-                                    variant="outline"
-                                    className="w-full bg-white/10 border-white/20 text-white hover:bg-white/20"
-                                >
-                                    <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
-                                        <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                                        <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                                        <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
-                                        <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-                                    </svg>
-                                    Continue with Google
-                                </Button>
-                                <div className="relative">
-                                    <div className="absolute inset-0 flex items-center">
-                                        <span className="w-full border-t border-white/20" />
-                                    </div>
-                                    <div className="relative flex justify-center text-xs uppercase">
-
-                                    </div>
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="email" className="text-white">
-                                        Email address
-                                    </Label>
-                                    <Input
-                                        id="email"
-                                        type="email"
-                                        placeholder="Enter your email"
-                                        value={formData.email}
-                                        onChange={(e) => handleInputChange('email', e.target.value.toLowerCase().trim())}
-                                        className="bg-white/10 border-white/20 text-white placeholder:text-gray-400 focus:border-blue-400"
-                                        disabled={isLoading}
-                                        maxLength={254} // Standard email max length
-                                        autoComplete="email"
-                                    />
-                                    {errors.email && (
-                                        <p className="text-red-400 text-sm">{errors.email}</p>
-                                    )}
+        <div className="min-h-screen w-full bg-white flex items-center justify-center p-4">
+            <div className={cn("flex flex-col gap-6 w-full max-w-6xl")}>
+                <Card className="overflow-hidden p-0 bg-white border border-gray-200">
+                    <CardContent className="grid p-0 md:grid-cols-2">
+                        <div className="p-6 md:p-8 bg-white">
+                            <FieldGroup>
+                                {/* Header */}
+                                <div className="flex flex-col items-center gap-2 text-center">
+                                    <h1 className="text-2xl font-bold text-gray-900">{getStepTitle()}</h1>
+                                    <p className="text-balance text-gray-600">
+                                        {getStepDescription()}
+                                    </p>
                                 </div>
 
-                                <Button
-                                    onClick={sendOTP}
-                                    disabled={isLoading || !formData.email}
-                                    className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-                                >
-                                    {isLoading ? (
-                                        <>
-                                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                            Sending...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Mail className="w-4 h-4 mr-2" />
-                                            Send OTP
-                                        </>
-                                    )}
-                                </Button>
+                                {/* Success/Error Messages */}
+                                {success && (
+                                    <Alert className="bg-green-50 border-green-200">
+                                        <CheckCircle className="h-4 w-4 text-green-600" />
+                                        <AlertDescription className="text-green-800">{success}</AlertDescription>
+                                    </Alert>
+                                )}
 
+                                {(errors.general || errors.google) && (
+                                    <Alert className="bg-red-50 border-red-200">
+                                        <AlertDescription className="text-red-800">
+                                            {errors.general || errors.google}
+                                        </AlertDescription>
+                                    </Alert>
+                                )}
 
-
-
-                            </div>
-                        )}
-
-                        {/* OTP Form */}
-                        {currentStep === 'otp' && (
-                            <div className="space-y-6">
-                                <Button
-                                    onClick={goBack}
-                                    variant="ghost"
-                                    className="text-white hover:bg-white/10 p-0"
-                                >
-                                    <ArrowLeft className="w-4 h-4 mr-2" />
-                                    Back
-                                </Button>
-
-                                <div className="space-y-4">
-                                    <Label className="text-white block text-center">
-                                        Enter 6-digit code
-                                    </Label>
-
-                                    <div className="flex justify-center">
-                                        <InputOTP
-                                            value={formData.otp}
-                                            onChange={handleOtpChange}
-                                            maxLength={6}
-                                        >
-                                            <InputOTPGroup>
-                                                <InputOTPSlot index={0} className="bg-white/10 border-white/20 text-white" />
-                                                <InputOTPSlot index={1} className="bg-white/10 border-white/20 text-white" />
-                                                <InputOTPSlot index={2} className="bg-white/10 border-white/20 text-white" />
-                                                <InputOTPSlot index={3} className="bg-white/10 border-white/20 text-white" />
-                                                <InputOTPSlot index={4} className="bg-white/10 border-white/20 text-white" />
-                                                <InputOTPSlot index={5} className="bg-white/10 border-white/20 text-white" />
-                                            </InputOTPGroup>
-                                        </InputOTP>
+                                {/* Success View */}
+                                {currentStep === 'success' && (
+                                    <div className="text-center py-8">
+                                        <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
+                                        <p className="text-lg text-gray-900">Redirecting to dashboard...</p>
                                     </div>
+                                )}
 
-                                    {errors.otp && (
-                                        <p className="text-red-400 text-sm text-center">{errors.otp}</p>
-                                    )}
-
-                                    <Button
-                                        onClick={verifyOTP}
-                                        disabled={isLoading || formData.otp.length !== 6}
-                                        className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-                                    >
-                                        {isLoading ? (
-                                            <>
-                                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                                Verifying...
-                                            </>
-                                        ) : (
-                                            'Verify Code'
-                                        )}
-                                    </Button>
-
-                                    <div className="text-center">
-                                        {timer > 0 ? (
-                                            <p className="text-gray-400 text-sm">
-                                                Resend code in {timer}s
-                                            </p>
-                                        ) : (
-                                            <Button
-                                                onClick={resendOTP}
-                                                variant="ghost"
-                                                className="text-blue-400 hover:text-blue-300 hover:bg-white/10"
+                                {/* Login Form */}
+                                {currentStep === 'input' && (
+                                    <>
+                                        <Field>
+                                            <FieldLabel htmlFor="email" className="text-gray-700 font-medium">Email</FieldLabel>
+                                            <Input
+                                                id="email"
+                                                type="email"
+                                                placeholder="m@example.com"
+                                                value={formData.email}
+                                                onChange={(e) => handleInputChange('email', e.target.value.toLowerCase().trim())}
                                                 disabled={isLoading}
+                                                required
+                                                className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:ring-blue-500"
+                                            />
+                                            {errors.email && (
+                                                <p className="text-red-500 text-sm mt-1">{errors.email}</p>
+                                            )}
+                                        </Field>
+
+                                        <Field>
+                                            <Button
+                                                onClick={sendOTP}
+                                                disabled={isLoading || !formData.email}
+                                                type="button"
+                                                className="w-full bg-blue-600 hover:bg-blue-700 text-white disabled:bg-gray-300 disabled:text-gray-500"
                                             >
-                                                Resend Code
+                                                {isLoading ? (
+                                                    <>
+                                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                                        Sending...
+                                                    </>
+                                                ) : (
+                                                    'Login'
+                                                )}
                                             </Button>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                        )}
+                                        </Field>
 
-                        {/* User Details Form */}
-                        {currentStep === 'userdetails' && (
-                            <div className="space-y-6">
-                                <Button
-                                    onClick={goBack}
-                                    variant="ghost"
-                                    className="text-white hover:bg-white/10 p-0"
-                                >
-                                    <ArrowLeft className="w-4 h-4 mr-2" />
-                                    Back
-                                </Button>
+                                        <FieldSeparator className="*:data-[slot=field-separator-content]:bg-white text-gray-500">
+                                            Or continue with
+                                        </FieldSeparator>
 
-                                <div className="space-y-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="userName" className="text-white">
-                                            Full Name
-                                        </Label>
-                                        <Input
-                                            id="userName"
-                                            type="text"
-                                            placeholder="Enter your full name"
-                                            value={formData.userName}
-                                            onChange={(e) => handleInputChange('userName', e.target.value)}
-                                            className="bg-white/10 border-white/20 text-white placeholder:text-gray-400 focus:border-blue-400"
-                                            disabled={isLoading}
-                                            maxLength={50}
-                                            autoComplete="name"
-                                        />
-                                        {errors.userName && (
-                                            <p className="text-red-400 text-sm">{errors.userName}</p>
-                                        )}
-                                    </div>
+                                        <Field className="grid grid-cols-3 gap-4">
+                                            <Button variant="outline" type="button" className="border-gray-300 hover:bg-gray-50 text-gray-700">
+                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                                                    <path
+                                                        d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"
+                                                        fill="currentColor" />
+                                                </svg>
+                                                <span className="sr-only">Login with Apple</span>
+                                            </Button>
+                                            <Button
+                                                variant="outline"
+                                                type="button"
+                                                onClick={signInWithGoogle}
+                                                disabled={isLoading}
+                                                className="border-gray-300 hover:bg-gray-50 text-gray-700"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                                                    <path
+                                                        d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z"
+                                                        fill="currentColor" />
+                                                </svg>
+                                                <span className="sr-only">Login with Google</span>
+                                            </Button>
+                                            <Button variant="outline" type="button" className="border-gray-300 hover:bg-gray-50 text-gray-700">
+                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                                                    <path
+                                                        d="M6.915 4.03c-1.968 0-3.683 1.28-4.871 3.113C.704 9.208 0 11.883 0 14.449c0 .706.07 1.369.21 1.973a6.624 6.624 0 0 0 .265.86 5.297 5.297 0 0 0 .371.761c.696 1.159 1.818 1.927 3.593 1.927 1.497 0 2.633-.671 3.965-2.444.76-1.012 1.144-1.626 2.663-4.32l.756-1.339.186-.325c.061.1.121.196.183.3l2.152 3.595c.724 1.21 1.665 2.556 2.47 3.314 1.046.987 1.992 1.22 3.06 1.22 1.075 0 1.876-.355 2.455-.843a3.743 3.743 0 0 0 .81-.973c.542-.939.861-2.127.861-3.745 0-2.72-.681-5.357-2.084-7.45-1.282-1.912-2.957-2.93-4.716-2.93-1.047 0-2.088.467-3.053 1.308-.652.57-1.257 1.29-1.82 2.05-.69-.875-1.335-1.547-1.958-2.056-1.182-.966-2.315-1.303-3.454-1.303zm10.16 2.053c1.147 0 2.188.758 2.992 1.999 1.132 1.748 1.647 4.195 1.647 6.4 0 1.548-.368 2.9-1.839 2.9-.58 0-1.027-.23-1.664-1.004-.496-.601-1.343-1.878-2.832-4.358l-.617-1.028a44.908 44.908 0 0 0-1.255-1.98c.07-.109.141-.224.211-.327 1.12-1.667 2.118-2.602 3.358-2.602zm-10.201.553c1.265 0 2.058.791 2.675 1.446.307.327.737.871 1.234 1.579l-1.02 1.566c-.757 1.163-1.882 3.017-2.837 4.338-1.191 1.649-1.81 1.817-2.486 1.817-.524 0-1.038-.237-1.383-.794-.263-.426-.464-1.13-.464-2.046 0-2.221.63-4.535 1.66-6.088.454-.687.964-1.226 1.533-1.533a2.264 2.264 0 0 1 1.088-.285z"
+                                                        fill="currentColor" />
+                                                </svg>
+                                                <span className="sr-only">Login with Meta</span>
+                                            </Button>
+                                        </Field>
 
-                                    <Button
-                                        onClick={handleUserDetailsSubmit}
-                                        disabled={isLoading || !formData.userName.trim() || formData.userName.trim().length < 2}
-                                        className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-                                    >
-                                        {isLoading ? (
-                                            <>
-                                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                                Saving...
-                                            </>
-                                        ) : (
-                                            'Complete Setup'
-                                        )}
-                                    </Button>
-                                </div>
-                            </div>
-                        )}
+                                        <FieldDescription className="text-center text-gray-600">
+                                            Don&apos;t have an account? <a href="#" className="text-blue-600 hover:underline">Sign up</a>
+                                        </FieldDescription>
+                                    </>
+                                )}
+
+                                {/* OTP Form */}
+                                {currentStep === 'otp' && (
+                                    <>
+                                        <Button
+                                            onClick={goBack}
+                                            variant="ghost"
+                                            className="self-start p-0 h-auto text-gray-700 hover:text-gray-900"
+                                            type="button"
+                                        >
+                                            <ArrowLeft className="w-4 h-4 mr-2" />
+                                            Back to email
+                                        </Button>
+
+                                        <Field>
+                                            <FieldLabel className="text-center block text-gray-700 font-medium">Enter 6-digit code</FieldLabel>
+                                            <div className="flex justify-center">
+                                                <InputOTP
+                                                    value={formData.otp}
+                                                    onChange={handleOtpChange}
+                                                    maxLength={6}
+                                                >
+                                                    <InputOTPGroup>
+                                                        <InputOTPSlot index={0} />
+                                                        <InputOTPSlot index={1} />
+                                                        <InputOTPSlot index={2} />
+                                                        <InputOTPSlot index={3} />
+                                                        <InputOTPSlot index={4} />
+                                                        <InputOTPSlot index={5} />
+                                                    </InputOTPGroup>
+                                                </InputOTP>
+                                            </div>
+                                            {errors.otp && (
+                                                <p className="text-red-500 text-sm text-center mt-1">{errors.otp}</p>
+                                            )}
+                                        </Field>
+
+                                        <Field>
+                                            <Button
+                                                onClick={verifyOTP}
+                                                disabled={isLoading || formData.otp.length !== 6}
+                                                className="w-full bg-blue-600 hover:bg-blue-700 text-white disabled:bg-gray-300 disabled:text-gray-500"
+                                                type="button"
+                                            >
+                                                {isLoading ? (
+                                                    <>
+                                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                                        Verifying...
+                                                    </>
+                                                ) : (
+                                                    'Verify Code'
+                                                )}
+                                            </Button>
+                                        </Field>
+
+                                        <FieldDescription className="text-center text-gray-600">
+                                            {timer > 0 ? (
+                                                <span>Resend code in {timer}s</span>
+                                            ) : (
+                                                <Button
+                                                    onClick={resendOTP}
+                                                    variant="link"
+                                                    className="p-0 h-auto text-blue-600 hover:underline"
+                                                    disabled={isLoading}
+                                                    type="button"
+                                                >
+                                                    Resend Code
+                                                </Button>
+                                            )}
+                                        </FieldDescription>
+                                    </>
+                                )}
+
+                                {/* User Details Form */}
+                                {currentStep === 'userdetails' && (
+                                    <>
+                                        <Button
+                                            onClick={goBack}
+                                            variant="ghost"
+                                            className="self-start p-0 h-auto text-gray-700 hover:text-gray-900"
+                                            type="button"
+                                        >
+                                            <ArrowLeft className="w-4 h-4 mr-2" />
+                                            Back
+                                        </Button>
+
+                                        <Field>
+                                            <FieldLabel htmlFor="userName" className="text-gray-700 font-medium">Full Name</FieldLabel>
+                                            <Input
+                                                id="userName"
+                                                type="text"
+                                                placeholder="Enter your full name"
+                                                value={formData.userName}
+                                                onChange={(e) => handleInputChange('userName', e.target.value)}
+                                                disabled={isLoading}
+                                                maxLength={50}
+                                                autoComplete="name"
+                                                className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:ring-blue-500"
+                                            />
+                                            {errors.userName && (
+                                                <p className="text-red-500 text-sm mt-1">{errors.userName}</p>
+                                            )}
+                                        </Field>
+
+                                        <Field>
+                                            <Button
+                                                onClick={handleUserDetailsSubmit}
+                                                disabled={isLoading || !formData.userName.trim() || formData.userName.trim().length < 2}
+                                                className="w-full bg-blue-600 hover:bg-blue-700 text-white disabled:bg-gray-300 disabled:text-gray-500"
+                                                type="button"
+                                            >
+                                                {isLoading ? (
+                                                    <>
+                                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                                        Saving...
+                                                    </>
+                                                ) : (
+                                                    'Complete Setup'
+                                                )}
+                                            </Button>
+                                        </Field>
+                                    </>
+                                )}
+                            </FieldGroup>
+                        </div>
+
+                        <div className="relative hidden bg-muted md:block">
+                            <img
+                                src="https://assets-v2.lottiefiles.com/a/4ab59f98-1171-11ee-ae84-4701bf3b3b9e/MuEl9pAZMr.gif"
+                                alt="Image"
+                                className="absolute inset-0 h-full w-full object-cover " />
+                        </div>
                     </CardContent>
                 </Card>
+
+                <FieldDescription className="px-6 text-center text-gray-600">
+                    By clicking continue, you agree to our <a href="#" className="text-blue-600 hover:underline">Terms of Service</a>{" "}
+                    and <a href="#" className="text-blue-600 hover:underline">Privacy Policy</a>.
+                </FieldDescription>
             </div>
-        </BackgroundLayout>
+        </div>
     );
 };
 

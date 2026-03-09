@@ -17,6 +17,7 @@ import Stats from "@/components/Stats";
 import InterviewTypes from "@/components/InterviewTypes";
 import CTA from "@/components/CTA";
 import HowItWorks from "@/components/HowItWorks";
+import HeroCompanies from "@/components/HeroCompanies";
 
 
 
@@ -79,7 +80,7 @@ export default function HeroSectionOne() {
   return (
     <>
 
-      <div className="min-h-screen w-full bg-black/[0.96] antialiased bg-grid-white/[0.02] relative flex items-center justify-center py-8 overflow-hidden">
+      <div className=" w-full bg-black/[0.96] antialiased bg-grid-white/[0.02] relative flex items-center justify-center py-8 overflow-hidden">
         <Spotlight
           className="-top-20 left-0 sm:-top-40 sm:left-0 md:left-60 md:-top-20"
           fill="white"
@@ -91,7 +92,7 @@ export default function HeroSectionOne() {
 
         <Navbar onDashboard={onDashboard} />
 
-        <div className="p-4 max-w-7xl mx-auto relative z-10 w-full text-center">
+        <div className="p-4 mt-30 max-w-7xl mx-auto relative z-10 w-full text-center">
           <h1 className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-bold mb-6">
             <span className="bg-gradient-to-b from-neutral-50 via-white/90 to-neutral-400 bg-clip-text text-transparent inline-block">
               Your Personal AI Job Recruiter
@@ -125,17 +126,15 @@ export default function HeroSectionOne() {
 
       </div>
 
+      <HeroCompanies />
+
       <div className="bg-black">
+        {/* <Stats /> */}
+      </div>
+ {/* <div className="bg-black">
         <FeaturesHighlight />
-      </div>
-
-      <div className="bg-black">
-        <Stats />
-      </div>
-
-      <div className="bg-black">
-        <ImageSlider />
-      </div>
+      </div> */}
+  
 
       <div className="bg-black">
         <InterviewTypes />
