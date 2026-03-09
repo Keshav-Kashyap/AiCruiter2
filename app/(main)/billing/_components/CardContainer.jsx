@@ -4,6 +4,78 @@ import React, { useState } from 'react'
 
 const CardContainer = ({ plans, getColorClasses }) => {
     const [selectedPlan, setSelectedPlan] = useState(null);
+    const [loading, setLoading] = useState(false);
+
+    const handlePayment = async (plan) => {
+        setLoading(true);
+        
+        try {
+            // Create order on server
+            const res = await fetch("/api/payment", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ amount: plan.price }), // amount in USD, will be converted to INR in API
+            });
+            
+            if (!res.ok) {
+                throw new Error("Failed to create order");
+            }
+            
+            const order = await res.json();
+
+            // Load Razorpay script
+            const script = document.createElement("script");
+            script.src = "https://checkout.razorpay.com/v1/checkout.js";
+            script.async = true;
+            script.onload = () => {
+                const rzp = new window.Razorpay({
+                    key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+                    amount: order.amount,
+                    currency: order.currency,
+                    order_id: order.id,
+                    name: "AI Interview Scheduler",
+                    description: `${plan.name} - Premium Interview Credits`,
+                    image: "/logo.png", // Your logo
+                    handler: function (response) {
+                        // Payment successful
+                        alert(`Payment successful! Welcome to ${plan.name}! Payment ID: ${response.razorpay_payment_id}`);
+                        console.log("Payment Response:", response);
+                        // Here you can:
+                        // 1. Update user subscription in database
+                        // 2. Redirect to dashboard
+                        // 3. Show success message
+                        setSelectedPlan(null);
+                    },
+                    prefill: {
+                        name: "User Name",
+                        email: "user@example.com",
+                        contact: "9999999999",
+                    },
+                    theme: {
+                        color: "#000000",
+                    },
+                    modal: {
+                        ondismiss: function() {
+                            setLoading(false);
+                        }
+                    }
+                });
+                rzp.open();
+                setLoading(false);
+            };
+            script.onerror = () => {
+                alert("Failed to load Razorpay SDK");
+                setLoading(false);
+            };
+            document.body.appendChild(script);
+        } catch (error) {
+            console.error("Payment error:", error);
+            alert("Payment failed. Please try again.");
+            setLoading(false);
+        }
+    };
 
     return (
         <>
@@ -85,8 +157,11 @@ const CardContainer = ({ plans, getColorClasses }) => {
                         <p className="text-gray-600 dark:text-gray-400 mb-8 text-lg">
                             Click below to proceed with your purchase and unlock all features
                         </p>
-                        <button className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-semibold py-4 px-10 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
-                            Proceed to Payment
+                        <button className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-semibold py-4 px-10 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                            onClick={() => handlePayment(plans.find(p => p.id === selectedPlan))}
+                            disabled={loading}
+                        >
+                            {loading ? "Processing Payment..." : "Proceed to Payment"}
                         </button>
                     </div>
                 </div>
