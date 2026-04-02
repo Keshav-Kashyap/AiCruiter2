@@ -1,9 +1,8 @@
 "use client"
-
 import { InterviewDataContext } from '@/app/context/InterviewDataContext';
 import { Loader2Icon, Mic, Phone, Timer, Volume2, VolumeX, Code2, ChevronLeft, ChevronRight } from 'lucide-react';
 import Image from 'next/image';
-import React, { useContext, useEffect, useState } from 'react'
+import React, { useContext, useEffect, useState, useRef } from 'react'
 import Vapi from '@vapi-ai/web';
 import { toast } from 'sonner';
 import axios from 'axios';
@@ -14,9 +13,9 @@ import CodeEditor from './_components/CodeEditor';
 
 const StartInterview = () => {
     const { interviewInfo, setInterviewInfo } = useContext(InterviewDataContext);
-    const vapi = new Vapi(process.env.NEXT_PUBLIC_VAPI_PUBLIC_KEY_HINDI);
+    const vapiRef = useRef(null);
     const [activeUser, setActiveUser] = useState(false);
-    const [conversation, setConversation] = useState();
+    const [conversation, setConversation] = useState([]);
     const { interview_id } = useParams();
     const router = useRouter();
     const [loading, setLoading] = useState(false);
@@ -26,8 +25,6 @@ const StartInterview = () => {
     const [volume, setVolume] = useState(0.8);
     const [showVolumeSlider, setShowVolumeSlider] = useState(false);
     const [callStarting, setCallStarting] = useState(false);
-    const [showCodeEditor, setShowCodeEditor] = useState(true);
-    const [editorWidth, setEditorWidth] = useState(50); // percentage
 
     // Timer effect
     useEffect(() => {
@@ -48,13 +45,14 @@ const StartInterview = () => {
         return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     };
 
+    // Setup Vapi event listeners
     useEffect(() => {
+        if (!vapiRef.current) return;
+
         const handleMessage = (message) => {
             console.log('Message', message);
             if (message?.conversation) {
-                const convoString = JSON.stringify(message.conversation);
-                console.log('Conversation string', convoString);
-                setConversation(convoString);
+                setConversation(prev => [...prev, message]);
             }
         }
 
@@ -72,6 +70,8 @@ const StartInterview = () => {
             setCallStarting(false);
             setActiveUser(false);
             toast.success('Interview Completed');
+            // Generate feedback after call ends
+            generateFeedback();
         };
 
         const handleSpeechStart = () => {
@@ -88,25 +88,28 @@ const StartInterview = () => {
             console.error('VAPI Error:', error);
             setCallStarting(false);
             setIsCallActive(false);
+            setLoading(false);
             toast.error('Failed to start interview. Please try again.');
         };
 
         // Register event handlers
-        vapi.on('message', handleMessage);
-        vapi.on('call-start', handleCallStart);
-        vapi.on('call-end', handleCallEnd);
-        vapi.on('speech-start', handleSpeechStart);
-        vapi.on('speech-end', handleSpeechEnd);
-        vapi.on('error', handleError);
+        vapiRef.current.on('message', handleMessage);
+        vapiRef.current.on('call-start', handleCallStart);
+        vapiRef.current.on('call-end', handleCallEnd);
+        vapiRef.current.on('speech-start', handleSpeechStart);
+        vapiRef.current.on('speech-end', handleSpeechEnd);
+        vapiRef.current.on('error', handleError);
 
         return () => {
             // Cleanup event listeners
-            vapi.off('message', handleMessage);
-            vapi.off('call-start', handleCallStart);
-            vapi.off('call-end', handleCallEnd);
-            vapi.off('speech-start', handleSpeechStart);
-            vapi.off('speech-end', handleSpeechEnd);
-            vapi.off('error', handleError);
+            if (vapiRef.current) {
+                vapiRef.current.off('message', handleMessage);
+                vapiRef.current.off('call-start', handleCallStart);
+                vapiRef.current.off('call-end', handleCallEnd);
+                vapiRef.current.off('speech-start', handleSpeechStart);
+                vapiRef.current.off('speech-end', handleSpeechEnd);
+                vapiRef.current.off('error', handleError);
+            }
         }
     }, []);
 
@@ -275,9 +278,18 @@ Maintain professional, encouraging tone throughout.
         toast.info('Starting interview...');
 
         try {
+            // Check microphone permission first
+            try {
+                await navigator.mediaDevices.getUserMedia({ audio: true });
+            } catch (micError) {
+                console.error('Microphone permission denied:', micError);
+                toast.error('Microphone permission is required. Please allow access and try again.');
+                setCallStarting(false);
+                return;
+            }
+
             console.log('=== VAPI Call Debug Info ===');
             console.log('VAPI Key exists:', !!vapiKey);
-            console.log('VAPI Key length:', vapiKey.length);
             console.log('Interview Info:', {
                 userName: interviewInfo?.userName,
                 jobPosition: interviewInfo?.interviewData?.jobPosition,
@@ -318,7 +330,13 @@ Maintain professional, encouraging tone throughout.
                 }
             };
 
-            // Minimal working configuration
+            // Get voice configuration based on language
+            const voiceConfig = {
+                provider: "playht",
+                voiceId: getPlayhtVoice(language)
+            };
+
+            // Assistant configuration with proper voice and transcriber
             const assistantOptions = {
                 model: {
                     provider: "openai",
@@ -330,22 +348,24 @@ Maintain professional, encouraging tone throughout.
                         }
                     ]
                 },
-                voice: {
-                    provider: "11labs",
-                    voiceId: "8FsOrsZSELg9otqX9nPu" // Default English voice
+                voice: voiceConfig,
+                transcriber: {
+                    provider: "deepgram",
+                    model: "nova-2",
+                    language: getDeepgramLangCode(language)
                 },
                 firstMessage: getFirstMessage(language)
             };
 
             console.log('Assistant Configuration:', JSON.stringify(assistantOptions, null, 2));
 
-            // Start the call with minimal config first
+            // Start the call using vapiRef
             console.log('Attempting to start VAPI call...');
-            const result = await vapi.start(assistantOptions);
-            console.log('✅ Call started successfully:', result);
+            const result = await vapiRef.current.start(assistantOptions);
+            console.log('Call started successfully:', result);
 
         } catch (error) {
-            console.error('❌ Detailed error starting call:', error);
+            console.error('Detailed error starting call:', error);
 
             // Log the full error details
             if (error.response) {
@@ -357,6 +377,7 @@ Maintain professional, encouraging tone throughout.
             }
 
             setCallStarting(false);
+            setIsCallActive(false);
 
             // More specific error messages based on response
             if (error.response?.status === 400) {
@@ -378,13 +399,13 @@ Maintain professional, encouraging tone throughout.
     };
 
     const toggleMute = () => {
-        if (!isCallActive) return;
+        if (!isCallActive || !vapiRef.current) return;
 
         try {
             if (isMuted) {
-                vapi.setMuted(false);
+                vapiRef.current.setMuted(false);
             } else {
-                vapi.setMuted(true);
+                vapiRef.current.setMuted(true);
             }
             setIsMuted(!isMuted);
             toast.info(isMuted ? 'Microphone Unmuted' : 'Microphone Muted');
@@ -397,8 +418,8 @@ Maintain professional, encouraging tone throughout.
     const handleVolumeChange = (newVolume) => {
         setVolume(newVolume);
         try {
-            if (vapi.setVolume) {
-                vapi.setVolume(newVolume);
+            if (vapiRef.current && vapiRef.current.setVolume) {
+                vapiRef.current.setVolume(newVolume);
             }
             const audioElements = document.querySelectorAll('audio');
             audioElements.forEach(audio => {
@@ -411,11 +432,15 @@ Maintain professional, encouraging tone throughout.
 
     const stopInterview = () => {
         try {
-            vapi.stop();
-            generateFeedback();
+            if (vapiRef.current) {
+                vapiRef.current.stop();
+                toast.info('Ending interview...');
+            }
         } catch (error) {
             console.error('Error stopping interview:', error);
             toast.error('Error ending interview');
+            // Still try to generate feedback
+            generateFeedback();
         }
     }
 
@@ -423,8 +448,11 @@ Maintain professional, encouraging tone throughout.
         setLoading(true);
 
         try {
+            // Convert conversation array to string for API
+            const conversationString = JSON.stringify(conversation);
+
             const result = await axios.post('/api/ai-feedback', {
-                conversation: conversation,
+                conversation: conversationString,
                 interviewData: interviewInfo?.interviewData,
                 userName: interviewInfo?.userName
             });
@@ -432,17 +460,23 @@ Maintain professional, encouraging tone throughout.
             console.log(result?.data);
 
             const Content = result?.data.content;
-            const jsonMatch = Content.match(/```json([\s\S]*?)```/);
-            const rawJSON = jsonMatch ? jsonMatch[1].trim() : Content;
-
+            
             let feedbackParsed;
             try {
-                feedbackParsed = JSON.parse(rawJSON);
-            } catch (err) {
-                console.error("Failed to parse feedback JSON:", err);
-                toast.error("Failed to generate feedback");
-                setLoading(false);
-                return;
+                // Try parsing directly first
+                feedbackParsed = JSON.parse(Content);
+            } catch (directParseError) {
+                // If direct parse fails, try extracting from code block
+                const jsonMatch = Content.match(/```json([\s\S]*?)```/);
+                const rawJSON = jsonMatch ? jsonMatch[1].trim() : Content;
+                try {
+                    feedbackParsed = JSON.parse(rawJSON);
+                } catch (err) {
+                    console.error("Failed to parse feedback JSON:", err);
+                    toast.error("Failed to generate feedback");
+                    setLoading(false);
+                    return;
+                }
             }
 
             const { data, error } = await supabase
@@ -711,38 +745,44 @@ Maintain professional, encouraging tone throughout.
                             </div>
                         </div>
 
-                        {/* Additional Info */}
-                        <div className='text-center'>
-                            {!isCallActive ? (
-                                <div className='space-y-3'>
-                                    <p className='text-gray-700 dark:text-gray-300 font-medium'>
-                                        Interview for: {interviewInfo?.interviewData?.jobPosition || 'Loading...'}
-                                    </p>
-                                    <div className='bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4'>
-                                        <div className='grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs text-blue-700 dark:text-blue-300'>
-                                            <div className='text-center'>
-                                                <strong>📝 Professional Tips</strong>
-                                                <p className='mt-1'>Speak clearly and confidently</p>
-                                            </div>
-                                            <div className='text-center'>
-                                                <strong>💻 Code Editor</strong>
-                                                <p className='mt-1'>Solve coding challenges</p>
-                                            </div>
-                                            <div className='text-center'>
-                                                <strong>⏱️ Duration</strong>
-                                                <p className='mt-1'>Max 30 minutes</p>
-                                            </div>
-                                        </div>
+                {/* Additional Info */}
+                <div className='mt-8 text-center'>
+                    {!isCallActive ? (
+                        <div className='space-y-3'>
+                            <p className='text-gray-700 dark:text-gray-300 font-medium'>
+                                Interview for: {interviewInfo?.interviewData?.jobPosition || 'Loading...'}
+                            </p>
+                            <p className='text-sm text-gray-500 dark:text-gray-400'>
+                                Make sure your microphone is working and you're in a quiet environment
+                            </p>
+                            <div className='bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 max-w-2xl mx-auto'>
+                                <div className='grid grid-cols-1 md:grid-cols-3 gap-4 text-xs text-blue-700 dark:text-blue-300'>
+                                    <div className='text-center'>
+                                        <strong>📝 Professional Tips:</strong>
+                                        <p className='mt-1'>Speak clearly and take your time</p>
+                                    </div>
+                                    <div className='text-center'>
+                                        <strong>🎯 Language:</strong>
+                                        <p className='mt-1'>{interviewInfo?.interviewData?.language?.charAt(0).toUpperCase() + interviewInfo?.interviewData?.language?.slice(1) || "English"}</p>
+                                    </div>
+                                    <div className='text-center'>
+                                        <strong>⏱️ Duration:</strong>
+                                        <p className='mt-1'>Max 30 minutes</p>
                                     </div>
                                 </div>
-                            ) : (
-                                <div className='space-y-2'>
-                                    <p className='text-sm text-gray-500 dark:text-gray-400'>
-                                        Your interview is being professionally recorded and analyzed
-                                    </p>
-                                    <p className='text-xs text-gray-400 dark:text-gray-500'>
-                                        Use the code editor on the right for technical questions
-                                    </p>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className='space-y-2'>
+                            <p className='text-sm text-gray-500 dark:text-gray-400'>
+                                Your interview is being professionally recorded and analyzed
+                            </p>
+                            <p className='text-xs text-gray-400 dark:text-gray-500'>
+                                Use the mute button if you need a moment to think
+                            </p>
+                            <div className='flex justify-center items-center gap-4 mt-4'>
+                                <div className='text-xs text-gray-500'>
+                                    Questions: {interviewInfo?.interviewData?.questionList?.length || 'Default'}
                                 </div>
                             )}
                         </div>
