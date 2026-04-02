@@ -323,11 +323,11 @@ const Login = () => {
     };
 
     // Show loading while checking auth status
-    if (loading) {
-        return (
-            <Loading loadingMessage={'Please Wait'} loadingDescription={'Data Fetching...'} />
-        );
-    }
+    // if (loading) {
+    //     return (
+    //         <Loading loadingMessage={'Please Wait'} loadingDescription={'Data Fetching...'} />
+    //     );
+    // }
 
     const getStepTitle = () => {
         switch (currentStep) {

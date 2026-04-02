@@ -59,10 +59,10 @@ export default function HeroSectionOne() {
 
     console.log("ondashboard cliked");
 
-    if (loading) {
-      console.log("loading fetching");
-      return; // wait till user is ready
-    }
+    // if (loading) {
+    //   console.log("loading fetching");
+    //   return; // wait till user is ready
+    // }
 
     if (!user) {
       router.push("/auth");

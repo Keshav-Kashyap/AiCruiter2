@@ -1,4 +1,4 @@
-import { BriefcaseBusinessIcon, Calendar, Code2Icon, Crown, LayoutDashboard, List, Puzzle, Settings, User2Icon, WalletCards, Users, Zap, MoreHorizontal } from "lucide-react";
+import { BriefcaseBusinessIcon, Calendar, Code2Icon, Crown, LayoutDashboard, List, Puzzle, Settings, User2Icon, WalletCards, Users, Zap, MoreHorizontal, FileText } from "lucide-react";
 import { SiAdobeacrobatreader } from "react-icons/si";
 import { RiNetflixFill } from "react-icons/ri";
 import { FaGoogle, FaMicrosoft, FaFacebook, FaAmazon, FaPhone, FaPaypal, FaApple } from "react-icons/fa";
@@ -17,6 +17,11 @@ export const SideBarOptions = [
         name: 'All Interview',
         icon: List,
         path: '/all-interview'
+    },
+    {
+        name: 'Resume Editor',
+        icon: FileText,
+        path: '/resume'
     },
     {
         name: 'Billing',
@@ -211,50 +216,50 @@ export function getInitial(name = '') {
 }
 
 
-export const companySelected=[
-        {
-      title:  "Google",
-      icon:FaGoogle,
-      
-        },
-         {
-      title:  "Microsoft",
-      icon:FaMicrosoft,
-      
-        },
-         {
-      title:  "Amazon",
-      icon:FaAmazon,
-      
-        },
-         {
-      title:  "Facebook",
-      icon:FaFacebook,
-      
-        },
-         {
-      title:  "Paypal",
-      icon:FaPaypal,
-      
-        },
-         {
-      title:  "Adobe",
-      icon:SiAdobeacrobatreader,
-      
-        },
-        
-        
-         {
-      title:  "Netflix",
-      icon: RiNetflixFill,
-      
-        },
-        {
-      title:  "Other",
-      icon:MoreHorizontal,
-      
-        },
+export const companySelected = [
+    {
+        title: "Google",
+        icon: FaGoogle,
 
-        
-     
+    },
+    {
+        title: "Microsoft",
+        icon: FaMicrosoft,
+
+    },
+    {
+        title: "Amazon",
+        icon: FaAmazon,
+
+    },
+    {
+        title: "Facebook",
+        icon: FaFacebook,
+
+    },
+    {
+        title: "Paypal",
+        icon: FaPaypal,
+
+    },
+    {
+        title: "Adobe",
+        icon: SiAdobeacrobatreader,
+
+    },
+
+
+    {
+        title: "Netflix",
+        icon: RiNetflixFill,
+
+    },
+    {
+        title: "Other",
+        icon: MoreHorizontal,
+
+    },
+
+
+
 ]
