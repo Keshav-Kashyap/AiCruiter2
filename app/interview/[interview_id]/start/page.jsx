@@ -14,6 +14,7 @@ import CodeEditor from './_components/CodeEditor';
 const StartInterview = () => {
     const { interviewInfo, setInterviewInfo } = useContext(InterviewDataContext);
     const vapiRef = useRef(null);
+    const callEndReasonRef = useRef(null);
     const [activeUser, setActiveUser] = useState(false);
     const [conversation, setConversation] = useState([]);
     const { interview_id } = useParams();
@@ -25,6 +26,8 @@ const StartInterview = () => {
     const [volume, setVolume] = useState(0.8);
     const [showVolumeSlider, setShowVolumeSlider] = useState(false);
     const [callStarting, setCallStarting] = useState(false);
+    const [showCodeEditor, setShowCodeEditor] = useState(false);
+    const [editorWidth, setEditorWidth] = useState(45);
 
     // Timer effect
     useEffect(() => {
@@ -45,19 +48,55 @@ const StartInterview = () => {
         return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     };
 
-    // Setup Vapi event listeners
+    const safeStringify = (value) => {
+        const seen = new WeakSet();
+        return JSON.stringify(value, (key, val) => {
+            if (typeof val === 'object' && val !== null) {
+                if (seen.has(val)) return '[Circular]';
+                seen.add(val);
+            }
+            return val;
+        });
+    };
+
+    // Initialize Vapi and setup event listeners
     useEffect(() => {
-        if (!vapiRef.current) return;
+        const vapiKey = process.env.NEXT_PUBLIC_VAPI_PUBLIC_KEY_HINDI;
+        if (!vapiKey) {
+            console.error('VAPI key not found in environment variables');
+            return;
+        }
+
+        if (!vapiRef.current) {
+            vapiRef.current = new Vapi(vapiKey);
+        }
+
+        const vapi = vapiRef.current;
 
         const handleMessage = (message) => {
             console.log('Message', message);
+
+            if (message?.type === 'status-update' && message?.status === 'ended' && message?.endedReason) {
+                callEndReasonRef.current = message.endedReason;
+            }
+
             if (message?.conversation) {
-                setConversation(prev => [...prev, message]);
+                try {
+                    const safeMessage = JSON.parse(safeStringify(message));
+                    setConversation(prev => [...prev, safeMessage]);
+                } catch {
+                    setConversation(prev => [...prev, {
+                        type: message?.type || 'unknown',
+                        timestamp: new Date().toISOString(),
+                        note: 'Message serialization failed'
+                    }]);
+                }
             }
         }
 
         const handleCallStart = () => {
             console.log('Call started');
+            callEndReasonRef.current = null;
             setIsCallActive(true);
             setCallStarting(false);
             setTimer(0);
@@ -66,11 +105,21 @@ const StartInterview = () => {
 
         const handleCallEnd = () => {
             console.log('Call ended');
+            const endReason = callEndReasonRef.current;
+
             setIsCallActive(false);
             setCallStarting(false);
             setActiveUser(false);
+
+            const failedCall = endReason && /meeting has ended|room was deleted|no-room|eject|error/i.test(String(endReason));
+
+            if (failedCall) {
+                toast.error('Interview disconnected. Please restart and try again.');
+                console.error('Call ended due to failure reason:', endReason);
+                return;
+            }
+
             toast.success('Interview Completed');
-            // Generate feedback after call ends
             generateFeedback();
         };
 
@@ -86,6 +135,7 @@ const StartInterview = () => {
 
         const handleError = (error) => {
             console.error('VAPI Error:', error);
+            callEndReasonRef.current = error?.error?.msg || error?.errorMsg || error?.message || 'unknown-error';
             setCallStarting(false);
             setIsCallActive(false);
             setLoading(false);
@@ -93,22 +143,22 @@ const StartInterview = () => {
         };
 
         // Register event handlers
-        vapiRef.current.on('message', handleMessage);
-        vapiRef.current.on('call-start', handleCallStart);
-        vapiRef.current.on('call-end', handleCallEnd);
-        vapiRef.current.on('speech-start', handleSpeechStart);
-        vapiRef.current.on('speech-end', handleSpeechEnd);
-        vapiRef.current.on('error', handleError);
+        vapi.on('message', handleMessage);
+        vapi.on('call-start', handleCallStart);
+        vapi.on('call-end', handleCallEnd);
+        vapi.on('speech-start', handleSpeechStart);
+        vapi.on('speech-end', handleSpeechEnd);
+        vapi.on('error', handleError);
 
         return () => {
             // Cleanup event listeners
-            if (vapiRef.current) {
-                vapiRef.current.off('message', handleMessage);
-                vapiRef.current.off('call-start', handleCallStart);
-                vapiRef.current.off('call-end', handleCallEnd);
-                vapiRef.current.off('speech-start', handleSpeechStart);
-                vapiRef.current.off('speech-end', handleSpeechEnd);
-                vapiRef.current.off('error', handleError);
+            if (vapi) {
+                vapi.off('message', handleMessage);
+                vapi.off('call-start', handleCallStart);
+                vapi.off('call-end', handleCallEnd);
+                vapi.off('speech-start', handleSpeechStart);
+                vapi.off('speech-end', handleSpeechEnd);
+                vapi.off('error', handleError);
             }
         }
     }, []);
@@ -269,11 +319,17 @@ Maintain professional, encouraging tone throughout.
             return;
         }
 
+        if (!vapiRef.current) {
+            vapiRef.current = new Vapi(vapiKey);
+        }
+
         // Check if already starting or active
         if (callStarting || isCallActive) {
             return;
         }
 
+        callEndReasonRef.current = null;
+        setConversation([]);
         setCallStarting(true);
         toast.info('Starting interview...');
 
@@ -340,7 +396,7 @@ Maintain professional, encouraging tone throughout.
             const assistantOptions = {
                 model: {
                     provider: "openai",
-                    model: "gpt-3.5-turbo",
+                    model: "gpt-4o-mini",
                     messages: [
                         {
                             role: "system",
@@ -449,7 +505,7 @@ Maintain professional, encouraging tone throughout.
 
         try {
             // Convert conversation array to string for API
-            const conversationString = JSON.stringify(conversation);
+            const conversationString = safeStringify(conversation);
 
             const result = await axios.post('/api/ai-feedback', {
                 conversation: conversationString,
@@ -460,7 +516,7 @@ Maintain professional, encouraging tone throughout.
             console.log(result?.data);
 
             const Content = result?.data.content;
-            
+
             let feedbackParsed;
             try {
                 // Try parsing directly first
@@ -728,10 +784,10 @@ Maintain professional, encouraging tone throughout.
                                         Initializing Interview...
                                     </p>
                                 ) : isCallActive ? (
-                                    <p className='text-green-600 dark:text-green-400 font-medium flex items-center justify-center gap-2'>
+                                    <div className='text-green-600 dark:text-green-400 font-medium flex items-center justify-center gap-2'>
                                         <div className='w-2 h-2 bg-green-500 rounded-full animate-pulse' />
-                                        Interview in Progress
-                                    </p>
+                                        <span>Interview in Progress</span>
+                                    </div>
                                 ) : (
                                     <div className='space-y-2'>
                                         <p className='text-gray-900 dark:text-white font-medium'>
@@ -745,86 +801,88 @@ Maintain professional, encouraging tone throughout.
                             </div>
                         </div>
 
-                {/* Additional Info */}
-                <div className='mt-8 text-center'>
-                    {!isCallActive ? (
-                        <div className='space-y-3'>
-                            <p className='text-gray-700 dark:text-gray-300 font-medium'>
-                                Interview for: {interviewInfo?.interviewData?.jobPosition || 'Loading...'}
-                            </p>
-                            <p className='text-sm text-gray-500 dark:text-gray-400'>
-                                Make sure your microphone is working and you're in a quiet environment
-                            </p>
-                            <div className='bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 max-w-2xl mx-auto'>
-                                <div className='grid grid-cols-1 md:grid-cols-3 gap-4 text-xs text-blue-700 dark:text-blue-300'>
-                                    <div className='text-center'>
-                                        <strong>📝 Professional Tips:</strong>
-                                        <p className='mt-1'>Speak clearly and take your time</p>
-                                    </div>
-                                    <div className='text-center'>
-                                        <strong>🎯 Language:</strong>
-                                        <p className='mt-1'>{interviewInfo?.interviewData?.language?.charAt(0).toUpperCase() + interviewInfo?.interviewData?.language?.slice(1) || "English"}</p>
-                                    </div>
-                                    <div className='text-center'>
-                                        <strong>⏱️ Duration:</strong>
-                                        <p className='mt-1'>Max 30 minutes</p>
+                        {/* Additional Info */}
+                        <div className='mt-8 text-center'>
+                            {!isCallActive ? (
+                                <div className='space-y-3'>
+                                    <p className='text-gray-700 dark:text-gray-300 font-medium'>
+                                        Interview for: {interviewInfo?.interviewData?.jobPosition || 'Loading...'}
+                                    </p>
+                                    <p className='text-sm text-gray-500 dark:text-gray-400'>
+                                        Make sure your microphone is working and you're in a quiet environment
+                                    </p>
+                                    <div className='bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 max-w-2xl mx-auto'>
+                                        <div className='grid grid-cols-1 md:grid-cols-3 gap-4 text-xs text-blue-700 dark:text-blue-300'>
+                                            <div className='text-center'>
+                                                <strong>📝 Professional Tips:</strong>
+                                                <p className='mt-1'>Speak clearly and take your time</p>
+                                            </div>
+                                            <div className='text-center'>
+                                                <strong>🎯 Language:</strong>
+                                                <p className='mt-1'>{interviewInfo?.interviewData?.language?.charAt(0).toUpperCase() + interviewInfo?.interviewData?.language?.slice(1) || "English"}</p>
+                                            </div>
+                                            <div className='text-center'>
+                                                <strong>⏱️ Duration:</strong>
+                                                <p className='mt-1'>Max 30 minutes</p>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        </div>
-                    ) : (
-                        <div className='space-y-2'>
-                            <p className='text-sm text-gray-500 dark:text-gray-400'>
-                                Your interview is being professionally recorded and analyzed
-                            </p>
-                            <p className='text-xs text-gray-400 dark:text-gray-500'>
-                                Use the mute button if you need a moment to think
-                            </p>
-                            <div className='flex justify-center items-center gap-4 mt-4'>
-                                <div className='text-xs text-gray-500'>
-                                    Questions: {interviewInfo?.interviewData?.questionList?.length || 'Default'}
+                            ) : (
+                                <div className='space-y-2'>
+                                    <p className='text-sm text-gray-500 dark:text-gray-400'>
+                                        Your interview is being professionally recorded and analyzed
+                                    </p>
+                                    <p className='text-xs text-gray-400 dark:text-gray-500'>
+                                        Use the mute button if you need a moment to think
+                                    </p>
+                                    <div className='flex justify-center items-center gap-4 mt-4'>
+                                        <div className='text-xs text-gray-500'>
+                                            Questions: {interviewInfo?.interviewData?.questionList?.length || 'Default'}
+                                        </div>
+                                    </div>
                                 </div>
                             )}
                         </div>
                     </div>
+
+                    {/* Code Editor Section */}
+                    {showCodeEditor && (
+                        <>
+                            {/* Resize Handle */}
+                            <div
+                                className='w-1 bg-gray-300 dark:bg-gray-700 hover:bg-blue-500 dark:hover:bg-blue-500 cursor-col-resize transition-colors'
+                                onMouseDown={(e) => {
+                                    e.preventDefault();
+                                    const startX = e.clientX;
+                                    const startWidth = editorWidth;
+
+                                    const handleMouseMove = (e) => {
+                                        const diff = startX - e.clientX;
+                                        const newWidth = Math.min(Math.max(startWidth + (diff / window.innerWidth) * 100, 30), 70);
+                                        setEditorWidth(newWidth);
+                                    };
+
+                                    const handleMouseUp = () => {
+                                        document.removeEventListener('mousemove', handleMouseMove);
+                                        document.removeEventListener('mouseup', handleMouseUp);
+                                    };
+
+                                    document.addEventListener('mousemove', handleMouseMove);
+                                    document.addEventListener('mouseup', handleMouseUp);
+                                }}
+                            />
+
+                            {/* Code Editor Panel */}
+                            <div
+                                className='bg-gray-900 overflow-hidden'
+                                style={{ width: `${editorWidth}%` }}
+                            >
+                                <CodeEditor />
+                            </div>
+                        </>
+                    )}
                 </div>
-
-                {/* Code Editor Section */}
-                {showCodeEditor && (
-                    <>
-                        {/* Resize Handle */}
-                        <div
-                            className='w-1 bg-gray-300 dark:bg-gray-700 hover:bg-blue-500 dark:hover:bg-blue-500 cursor-col-resize transition-colors'
-                            onMouseDown={(e) => {
-                                e.preventDefault();
-                                const startX = e.clientX;
-                                const startWidth = editorWidth;
-
-                                const handleMouseMove = (e) => {
-                                    const diff = startX - e.clientX;
-                                    const newWidth = Math.min(Math.max(startWidth + (diff / window.innerWidth) * 100, 30), 70);
-                                    setEditorWidth(newWidth);
-                                };
-
-                                const handleMouseUp = () => {
-                                    document.removeEventListener('mousemove', handleMouseMove);
-                                    document.removeEventListener('mouseup', handleMouseUp);
-                                };
-
-                                document.addEventListener('mousemove', handleMouseMove);
-                                document.addEventListener('mouseup', handleMouseUp);
-                            }}
-                        />
-
-                        {/* Code Editor Panel */}
-                        <div
-                            className='bg-gray-900 overflow-hidden'
-                            style={{ width: `${editorWidth}%` }}
-                        >
-                            <CodeEditor />
-                        </div>
-                    </>
-                )}
             </div>
         </div>
     )

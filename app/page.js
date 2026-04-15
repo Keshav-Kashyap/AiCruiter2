@@ -53,33 +53,39 @@ export default function HeroSectionOne() {
 
   const router = useRouter();
   const { user, loading } = useUser();
+  const [mount ,setMount] = useState(false);
+  
+  useEffect(()=>{
+    setMount(true);
+  },[])
 
+  
 
 
   const onDashboard = () => {
 
     console.log("ondashboard cliked");
-
     // if (loading) {
     //   console.log("loading fetching");
     //   return; // wait till user is ready
     // }
-
     if (!user) {
       router.push("/auth");
     } else {
       router.push("/dashboard");
     }
-
-
-
-
-
   };
+  if(!mount){
+  return(
+    <>
+    <div>Loading...</div>
+    </>
+  );
+  }
 
   return (
     <>
-
+    
       <div className=" w-full bg-black/[0.96] antialiased bg-grid-white/[0.02] relative flex items-center justify-center py-8 overflow-hidden">
         <Spotlight
           className="-top-20 left-0 sm:-top-40 sm:left-0 md:left-60 md:-top-20"
