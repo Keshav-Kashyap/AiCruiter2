@@ -14,7 +14,7 @@ const GoogleLoginButton = ({ onClick, isLoading }) => {
         <button
             onClick={onClick}
             disabled={isLoading}
-            className="w-full mb-4 py-3 bg-white hover:bg-gray-100 text-gray-800 font-semibold rounded-xl transition-all transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-3 shadow-lg"
+            className="w-full mb-4 py-3 bg-white/10 hover:bg-white/15 text-white font-semibold rounded-xl transition-all transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-3 border border-white/10 shadow-lg shadow-black/20 backdrop-blur-md"
         >
             <GoogleIcon />
             <span className="text-sm md:text-base">Continue with Google</span>

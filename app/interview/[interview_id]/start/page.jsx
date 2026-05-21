@@ -15,8 +15,11 @@ const StartInterview = () => {
     const { interviewInfo, setInterviewInfo } = useContext(InterviewDataContext);
     const vapiRef = useRef(null);
     const callEndReasonRef = useRef(null);
+    const callFailedRef = useRef(false);
     const [activeUser, setActiveUser] = useState(false);
     const [conversation, setConversation] = useState([]);
+    const [typedAnswer, setTypedAnswer] = useState('');
+    const [sendingTypedAnswer, setSendingTypedAnswer] = useState(false);
     const { interview_id } = useParams();
     const router = useRouter();
     const [loading, setLoading] = useState(false);
@@ -97,6 +100,7 @@ const StartInterview = () => {
         const handleCallStart = () => {
             console.log('Call started');
             callEndReasonRef.current = null;
+            callFailedRef.current = false;
             setIsCallActive(true);
             setCallStarting(false);
             setTimer(0);
@@ -110,10 +114,18 @@ const StartInterview = () => {
             setIsCallActive(false);
             setCallStarting(false);
             setActiveUser(false);
+            setTypedAnswer('');
+
+            if (callFailedRef.current) {
+                toast.error('Interview disconnected. Please restart and try again.');
+                console.error('Call ended after a previous failure:', endReason);
+                return;
+            }
 
             const failedCall = endReason && /meeting has ended|room was deleted|no-room|eject|error/i.test(String(endReason));
 
             if (failedCall) {
+                callFailedRef.current = true;
                 toast.error('Interview disconnected. Please restart and try again.');
                 console.error('Call ended due to failure reason:', endReason);
                 return;
@@ -135,6 +147,7 @@ const StartInterview = () => {
 
         const handleError = (error) => {
             console.error('VAPI Error:', error);
+            callFailedRef.current = true;
             callEndReasonRef.current = error?.error?.msg || error?.errorMsg || error?.message || 'unknown-error';
             setCallStarting(false);
             setIsCallActive(false);
@@ -178,19 +191,62 @@ const StartInterview = () => {
         }
     }
 
-    function getPlayhtVoice(lang) {
-        if (!lang) return "jennifer";
+    function getOpenAIVoice(lang) {
+        if (!lang) return "alloy";
+
         switch (lang.toLowerCase()) {
             case "english":
-                return "jennifer";
             case "hindi":
-                return "ananya";
             case "hinglish":
-                return "ananya";
+                return "alloy";
+
             default:
-                return "jennifer";
+                return "alloy";
         }
     }
+
+    const sendTypedAnswer = async () => {
+        const trimmedAnswer = typedAnswer.trim();
+
+        if (!trimmedAnswer) {
+            toast.error('Please type your answer before sending.');
+            return;
+        }
+
+        if (!isCallActive || !vapiRef.current) {
+            toast.error('Start the interview first, then send a typed answer.');
+            return;
+        }
+
+        try {
+            setSendingTypedAnswer(true);
+
+            vapiRef.current.send({
+                type: 'add-message',
+                message: {
+                    role: 'user',
+                    content: trimmedAnswer,
+                },
+            });
+
+            setConversation(prev => [
+                ...prev,
+                {
+                    type: 'typed-response',
+                    role: 'user',
+                    content: trimmedAnswer,
+                    timestamp: new Date().toISOString(),
+                },
+            ]);
+            setTypedAnswer('');
+            toast.success('Typed answer sent to the interviewer.');
+        } catch (error) {
+            console.error('Error sending typed answer:', error);
+            toast.error('Failed to send your typed answer.');
+        } finally {
+            setSendingTypedAnswer(false);
+        }
+    };
 
     function getSystemPrompt(language, interviewInfo, questionList) {
         const jobPosition = interviewInfo?.interviewData?.jobPosition || "this position";
@@ -200,35 +256,44 @@ const StartInterview = () => {
         switch (language.toLowerCase()) {
             case "hindi":
                 return `
-आप एक professional AI voice assistant हैं जो interviews conduct करते हैं। आपका काम है candidates को दिए गए interview questions पूछना और उनके responses को assess करना।
+Aap ek professional AI voice assistant ho jo interviews conduct karta hai. Aapka kaam candidates se diye gaye interview questions puchna aur unke responses ko professionally assess karna hai.
 
-Interview की शुरुआत इस तरह करें:
-"नमस्ते ${userName}! आपका ${jobPosition} position के लिए interview में स्वागत है। मैं आपका AI interviewer हूँ। क्या आप तैयार हैं?"
+Interview ki shuruaat is tarah karo:
 
-महत्वपूर्ण निर्देश:
-- एक समय में सिर्फ एक question पूछें
-- Candidate के response का पूरा इंतज़ार करें
-- Questions को clear और professional रखें
-- Natural conversation maintain करें
+"Hello ${userName}! Aapka ${jobPosition} position ke interview mein welcome hai. Main aaj aapka AI interviewer hoon. Kya aap ready hain?"
 
-यहाँ हैं questions जो एक-एक करके पूछने हैं:
+Important Instructions:
+- Ek time par sirf ek question pucho
+- Candidate ke response ka complete wait karo
+- Questions clear aur professional hone chahiye
+- Natural conversation maintain karo
+
+Yahan questions diye gaye hain jo ek-ek karke puchne hain:
 ${questionList}
 
 Response Guidelines:
-- अगर candidate struggle कर रहा है, तो supportive hints दें
-- हर answer के बाद brief acknowledgment दें: "अच्छा", "समझ गया", "बहुत बढ़िया"
-- Encouraging लेकिन professional tone maintain करें
-- Follow-up questions पूछें जहाँ appropriate हो
+- Agar candidate struggle kar raha ho to supportive hints do
+- Har answer ke baad short acknowledgment do:
+  "Achha", "Samajh gaya", "Very good", "Bahut badhiya", "Great answer"
 
-Interview को 5-7 questions के बाद professionally conclude करें:
-"धन्यवाद ${userName}! आपने बहुत अच्छे answers दिए हैं। हमारी team आपसे जल्दी contact करेगी।"
+- Encouraging aur professional tone maintain karo
+- Jahan zarurat ho follow-up questions pucho
+- Hindi aur English naturally mix karke baat karo
+- Agar candidate type kar raha ho ya pause le raha ho, interview ko close mat karo.
+- Patience se wait karo jab tak candidate apna answer submit na kare.
+- Interview sirf tab conclude karo jab candidate explicitly bole ki wo finish kar chuka hai ya end interview kare.
+
+Interview ko tabhi professionally conclude karo jab candidate explicitly finish kare:
+
+"Thank you ${userName}! Aapne kaafi achhe answers diye hain. Hamari team aapse jaldi contact karegi."
 
 Key Guidelines:
 ✅ Professional yet friendly tone
-✅ Clear Hindi pronunciation
+✅ Natural Hinglish conversation
+✅ Clear pronunciation
 ✅ Appropriate pauses between questions
 ✅ Encouraging feedback
-✅ पूरी बातचीत Hindi में करें
+✅ Hindi aur English naturally mix karo
 `.trim();
 
             case "english":
@@ -252,8 +317,11 @@ Response Guidelines:
 - Acknowledge each answer briefly: "Great", "I understand", "Excellent point"
 - Maintain encouraging yet professional tone
 - Ask follow-up questions when appropriate
+- If the candidate is typing or pauses for a while, do not end the interview.
+- Wait patiently until the candidate submits their answer.
+- Only conclude when the candidate explicitly says they are done or wants to end the interview.
 
-Conclude professionally after 5-7 questions:
+Conclude professionally only when the candidate explicitly finishes:
 "Thank you ${userName}! You've provided some excellent insights. Our team will be in touch with you soon."
 
 Key Guidelines:
@@ -266,33 +334,44 @@ Key Guidelines:
 
             case "hinglish":
                 return `
-आप एक professional AI interviewer हैं। आप Hindi और English दोनों mix करके naturally बात कर सकते हैं।
+Aap ek professional AI voice assistant ho jo interviews conduct karta hai. Aapka kaam candidates se diye gaye interview questions puchna aur unke responses ko professionally assess karna hai.
 
-Interview start करें:
-"Hello ${userName}! Welcome to your ${jobPosition} का interview। Main आपका AI interviewer हूँ। Ready हैं आप?"
+Interview ki shuruaat is tarah karo:
 
-Instructions:
-- एक time पर एक ही question पूछें
-- Candidate का complete response wait करें
-- Natural Hinglish use करें जैसे normally बोलते हैं
+"Hello ${userName}! Aapka ${jobPosition} position ke interview mein welcome hai. Main aaj aapka AI interviewer hoon. Kya aap ready hain?"
 
-Questions:
+Important Instructions:
+- Ek time par sirf ek question pucho
+- Candidate ke response ka complete wait karo
+- Questions clear aur professional hone chahiye
+- Natural conversation maintain karo
+
+Yahan questions diye gaye hain jo ek-ek karke puchne hain:
 ${questionList}
 
-Response style:
-- "Achha, very good!", "Bilkul right!", "Great answer!"
-- Supportive hints दें अगर need हो
-- Natural conversation maintain करें
-- Mix Hindi-English comfortably
+Response Guidelines:
+- Agar candidate struggle kar raha ho to supportive hints do
+- Har answer ke baad short acknowledgment do:
+  "Achha", "Samajh gaya", "Very good", "Bahut badhiya", "Great answer"
 
-Conclude करें:
-"Thank you ${userName}! Bahut achhe answers दिए हैं आपने। Team आपको soon contact करेगी।"
+- Encouraging aur professional tone maintain karo
+- Jahan zarurat ho follow-up questions pucho
+- Hindi aur English naturally mix karke baat karo
+- Agar candidate type kar raha ho ya pause le raha ho, interview close mat karo.
+- Patiently wait karo jab tak candidate answer submit na kare.
+- Interview sirf tab conclude karo jab candidate clearly bole ki wo done hai.
+
+Interview ko tabhi professionally conclude karo jab candidate explicitly finish kare:
+
+"Thank you ${userName}! Aapne kaafi achhe answers diye hain. Hamari team aapse jaldi contact karegi."
 
 Key Guidelines:
-✅ Natural Hinglish flow
-✅ Professional yet friendly
-✅ Clear pronunciation दोनों languages में
+✅ Professional yet friendly tone
+✅ Natural Hinglish conversation
+✅ Clear pronunciation
+✅ Appropriate pauses between questions
 ✅ Encouraging feedback
+✅ Hindi aur English naturally mix karo
 `.trim();
 
             default:
@@ -302,6 +381,8 @@ You are a professional AI interviewer conducting a ${jobPosition} interview with
 Ask questions one by one from: ${questionList}
 
 Maintain professional, encouraging tone throughout.
+If the candidate is typing or pauses for a while, keep waiting and do not close the interview.
+Only conclude when the candidate explicitly finishes or asks to end the interview.
 `.trim();
         }
     }
@@ -329,7 +410,9 @@ Maintain professional, encouraging tone throughout.
         }
 
         callEndReasonRef.current = null;
+        callFailedRef.current = false;
         setConversation([]);
+        setTypedAnswer('');
         setCallStarting(true);
         toast.info('Starting interview...');
 
@@ -388,8 +471,10 @@ Maintain professional, encouraging tone throughout.
 
             // Get voice configuration based on language
             const voiceConfig = {
-                provider: "playht",
-                voiceId: getPlayhtVoice(language)
+                provider: "openai",
+                model: "gpt-4o-mini-tts",
+                voiceId: getOpenAIVoice(language),
+                cachingEnabled: true
             };
 
             // Assistant configuration with proper voice and transcriber
@@ -413,11 +498,21 @@ Maintain professional, encouraging tone throughout.
                 firstMessage: getFirstMessage(language)
             };
 
+            console.log('Assistant LLM config:', assistantOptions.model);
+            console.log('Assistant voice config:', assistantOptions.voice);
+            console.log('Assistant transcriber config:', assistantOptions.transcriber);
             console.log('Assistant Configuration:', JSON.stringify(assistantOptions, null, 2));
 
             // Start the call using vapiRef
             console.log('Attempting to start VAPI call...');
-            const result = await vapiRef.current.start(assistantOptions);
+            const result = await vapiRef.current.start(
+                assistantOptions,
+                undefined,
+                undefined,
+                undefined,
+                undefined,
+                { roomDeleteOnUserLeaveEnabled: false }
+            );
             console.log('Call started successfully:', result);
 
         } catch (error) {
@@ -769,6 +864,34 @@ Maintain professional, encouraging tone throughout.
                                         )}
                                     </div>
                                 )}
+                            </div>
+
+                            <div className='max-w-3xl mx-auto mb-6'>
+                                <div className='flex flex-col sm:flex-row gap-3'>
+                                    <input
+                                        type='text'
+                                        value={typedAnswer}
+                                        onChange={(e) => setTypedAnswer(e.target.value)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' && !e.shiftKey) {
+                                                e.preventDefault();
+                                                sendTypedAnswer();
+                                            }
+                                        }}
+                                        placeholder='Type your answer here if you cannot speak...'
+                                        className='flex-1 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-4 py-3 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20'
+                                    />
+                                    <button
+                                        onClick={sendTypedAnswer}
+                                        disabled={sendingTypedAnswer || !typedAnswer.trim() || !isCallActive}
+                                        className='inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-400'
+                                    >
+                                        {sendingTypedAnswer ? 'Sending...' : 'Send Answer'}
+                                    </button>
+                                </div>
+                                <p className='mt-2 text-xs text-center text-gray-500 dark:text-gray-400'>
+                                    You can type here anytime. Sending works after the interview starts.
+                                </p>
                             </div>
 
                             {/* Status Text */}

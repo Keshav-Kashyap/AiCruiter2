@@ -15,9 +15,11 @@ import { Field, FieldDescription, FieldGroup, FieldLabel, FieldSeparator } from 
 import { ArrowLeft, Mail, CheckCircle, Loader2 } from 'lucide-react';
 import Loading from '@/components/Loading';
 import { cn } from '@/lib/utils';
+import BackgroundLayout from './_components/BackGroundLayout';
 
 const Login = () => {
     const [currentStep, setCurrentStep] = useState('input'); // input, otp, userdetails, success
+    const [reviewIndex, setReviewIndex] = useState(0);
     const [formData, setFormData] = useState({
         email: '',
         otp: '',
@@ -31,6 +33,35 @@ const Login = () => {
     const { user, loading, updateUserName, refreshUser } = useUser();
     const { validateEmail } = useAuthValidation();
     const { timer, setTimer } = useAuthTimer();
+
+    const reviews = [
+        {
+            name: 'Aarav Mehta',
+            role: 'Frontend Developer',
+            company: 'StackWave',
+            quote: 'The interview flow felt calm and professional. I liked how clear the questions were and how fast the feedback came through.',
+        },
+        {
+            name: 'Sneha Kapoor',
+            role: 'Product Designer',
+            company: 'Northstar Labs',
+            quote: 'The whole experience looked premium and modern. It made the platform feel trustworthy from the first minute.',
+        },
+        {
+            name: 'Karan Shah',
+            role: 'Backend Engineer',
+            company: 'CloudMint',
+            quote: 'Clean UI, smooth flow, and a solid interview experience. It honestly feels like a next-gen hiring product.',
+        },
+    ];
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setReviewIndex((prev) => (prev + 1) % reviews.length);
+        }, 4500);
+
+        return () => clearInterval(interval);
+    }, [reviews.length]);
 
     // Check if user is already logged in and has complete profile
     useEffect(() => {
@@ -360,31 +391,31 @@ const Login = () => {
     };
 
     return (
-        <div className="min-h-screen w-full bg-white flex items-center justify-center p-4">
-            <div className={cn("flex flex-col gap-6 w-full max-w-6xl")}>
-                <Card className="overflow-hidden p-0 bg-white border border-gray-200">
-                    <CardContent className="grid p-0 md:grid-cols-2">
-                        <div className="p-6 md:p-8 bg-white">
+        <BackgroundLayout>
+            <div className="w-full max-w-6xl">
+                <Card className="overflow-hidden p-0 border border-white/10 bg-white/5 backdrop-blur-2xl shadow-[0_24px_80px_rgba(0,0,0,0.45)]">
+                    <CardContent className="grid p-0 md:grid-cols-2 bg-transparent">
+                        <div className="p-6 md:p-8 bg-transparent">
                             <FieldGroup>
                                 {/* Header */}
                                 <div className="flex flex-col items-center gap-2 text-center">
-                                    <h1 className="text-2xl font-bold text-gray-900">{getStepTitle()}</h1>
-                                    <p className="text-balance text-gray-600">
+                                    <h1 className="text-2xl font-bold text-white">{getStepTitle()}</h1>
+                                    <p className="text-balance text-gray-300">
                                         {getStepDescription()}
                                     </p>
                                 </div>
 
                                 {/* Success/Error Messages */}
                                 {success && (
-                                    <Alert className="bg-green-50 border-green-200">
+                                    <Alert className="border-emerald-500/20 bg-emerald-500/10 text-emerald-100">
                                         <CheckCircle className="h-4 w-4 text-green-600" />
-                                        <AlertDescription className="text-green-800">{success}</AlertDescription>
+                                        <AlertDescription className="text-emerald-100">{success}</AlertDescription>
                                     </Alert>
                                 )}
 
                                 {(errors.general || errors.google) && (
-                                    <Alert className="bg-red-50 border-red-200">
-                                        <AlertDescription className="text-red-800">
+                                    <Alert className="border-red-500/20 bg-red-500/10 text-red-100">
+                                        <AlertDescription className="text-red-100">
                                             {errors.general || errors.google}
                                         </AlertDescription>
                                     </Alert>
@@ -394,7 +425,7 @@ const Login = () => {
                                 {currentStep === 'success' && (
                                     <div className="text-center py-8">
                                         <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-                                        <p className="text-lg text-gray-900">Redirecting to dashboard...</p>
+                                        <p className="text-lg text-white">Redirecting to dashboard...</p>
                                     </div>
                                 )}
 
@@ -402,7 +433,7 @@ const Login = () => {
                                 {currentStep === 'input' && (
                                     <>
                                         <Field>
-                                            <FieldLabel htmlFor="email" className="text-gray-700 font-medium">Email</FieldLabel>
+                                            <FieldLabel htmlFor="email" className="text-gray-200 font-medium">Email</FieldLabel>
                                             <Input
                                                 id="email"
                                                 type="email"
@@ -411,10 +442,10 @@ const Login = () => {
                                                 onChange={(e) => handleInputChange('email', e.target.value.toLowerCase().trim())}
                                                 disabled={isLoading}
                                                 required
-                                                className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:ring-blue-500"
+                                                className="border-white/15 bg-white/5 text-white placeholder:text-gray-500 focus:border-blue-500 focus:ring-blue-500"
                                             />
                                             {errors.email && (
-                                                <p className="text-red-500 text-sm mt-1">{errors.email}</p>
+                                                <p className="text-red-300 text-sm mt-1">{errors.email}</p>
                                             )}
                                         </Field>
 
@@ -423,7 +454,7 @@ const Login = () => {
                                                 onClick={sendOTP}
                                                 disabled={isLoading || !formData.email}
                                                 type="button"
-                                                className="w-full bg-blue-600 hover:bg-blue-700 text-white disabled:bg-gray-300 disabled:text-gray-500"
+                                                className="w-full bg-blue-600 hover:bg-blue-700 text-white disabled:bg-white/10 disabled:text-gray-500"
                                             >
                                                 {isLoading ? (
                                                     <>
@@ -436,7 +467,7 @@ const Login = () => {
                                             </Button>
                                         </Field>
 
-                                        <FieldSeparator className="*:data-[slot=field-separator-content]:bg-white text-gray-500">
+                                        <FieldSeparator className="*:data-[slot=field-separator-content]:bg-[#050816] text-gray-400">
                                             Or continue with
                                         </FieldSeparator>
 
@@ -473,8 +504,8 @@ const Login = () => {
                                             </Button>
                                         </Field>
 
-                                        <FieldDescription className="text-center text-gray-600">
-                                            Don&apos;t have an account? <a href="#" className="text-blue-600 hover:underline">Sign up</a>
+                                        <FieldDescription className="text-center text-gray-300">
+                                            Don&apos;t have an account? <a href="#" className="text-blue-400 hover:underline">Sign up</a>
                                         </FieldDescription>
                                     </>
                                 )}
@@ -485,7 +516,7 @@ const Login = () => {
                                         <Button
                                             onClick={goBack}
                                             variant="ghost"
-                                            className="self-start p-0 h-auto text-gray-700 hover:text-gray-900"
+                                            className="self-start p-0 h-auto text-gray-300 hover:text-white"
                                             type="button"
                                         >
                                             <ArrowLeft className="w-4 h-4 mr-2" />
@@ -493,7 +524,7 @@ const Login = () => {
                                         </Button>
 
                                         <Field>
-                                            <FieldLabel className="text-center block text-gray-700 font-medium">Enter 6-digit code</FieldLabel>
+                                            <FieldLabel className="text-center block text-gray-200 font-medium">Enter 6-digit code</FieldLabel>
                                             <div className="flex justify-center">
                                                 <InputOTP
                                                     value={formData.otp}
@@ -511,7 +542,7 @@ const Login = () => {
                                                 </InputOTP>
                                             </div>
                                             {errors.otp && (
-                                                <p className="text-red-500 text-sm text-center mt-1">{errors.otp}</p>
+                                                <p className="text-red-300 text-sm text-center mt-1">{errors.otp}</p>
                                             )}
                                         </Field>
 
@@ -519,7 +550,7 @@ const Login = () => {
                                             <Button
                                                 onClick={verifyOTP}
                                                 disabled={isLoading || formData.otp.length !== 6}
-                                                className="w-full bg-blue-600 hover:bg-blue-700 text-white disabled:bg-gray-300 disabled:text-gray-500"
+                                                className="w-full bg-blue-600 hover:bg-blue-700 text-white disabled:bg-white/10 disabled:text-gray-500"
                                                 type="button"
                                             >
                                                 {isLoading ? (
@@ -535,12 +566,12 @@ const Login = () => {
 
                                         <FieldDescription className="text-center text-gray-600">
                                             {timer > 0 ? (
-                                                <span>Resend code in {timer}s</span>
+                                                <span className="text-gray-300">Resend code in {timer}s</span>
                                             ) : (
                                                 <Button
                                                     onClick={resendOTP}
                                                     variant="link"
-                                                    className="p-0 h-auto text-blue-600 hover:underline"
+                                                    className="p-0 h-auto text-blue-400 hover:underline"
                                                     disabled={isLoading}
                                                     type="button"
                                                 >
@@ -557,7 +588,7 @@ const Login = () => {
                                         <Button
                                             onClick={goBack}
                                             variant="ghost"
-                                            className="self-start p-0 h-auto text-gray-700 hover:text-gray-900"
+                                            className="self-start p-0 h-auto text-gray-300 hover:text-white"
                                             type="button"
                                         >
                                             <ArrowLeft className="w-4 h-4 mr-2" />
@@ -565,7 +596,7 @@ const Login = () => {
                                         </Button>
 
                                         <Field>
-                                            <FieldLabel htmlFor="userName" className="text-gray-700 font-medium">Full Name</FieldLabel>
+                                            <FieldLabel htmlFor="userName" className="text-gray-200 font-medium">Full Name</FieldLabel>
                                             <Input
                                                 id="userName"
                                                 type="text"
@@ -575,10 +606,10 @@ const Login = () => {
                                                 disabled={isLoading}
                                                 maxLength={50}
                                                 autoComplete="name"
-                                                className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:ring-blue-500"
+                                                className="border-white/15 bg-white/5 text-white placeholder:text-gray-500 focus:border-blue-500 focus:ring-blue-500"
                                             />
                                             {errors.userName && (
-                                                <p className="text-red-500 text-sm mt-1">{errors.userName}</p>
+                                                <p className="text-red-300 text-sm mt-1">{errors.userName}</p>
                                             )}
                                         </Field>
 
@@ -604,21 +635,57 @@ const Login = () => {
                             </FieldGroup>
                         </div>
 
-                        <div className="relative hidden bg-muted md:block">
-                            <img
-                                src="https://assets-v2.lottiefiles.com/a/4ab59f98-1171-11ee-ae84-4701bf3b3b9e/MuEl9pAZMr.gif"
-                                alt="Image"
-                                className="absolute inset-0 h-full w-full object-cover " />
+                        <div className="relative hidden md:flex items-center justify-center overflow-hidden bg-gradient-to-br from-[#070b1a] via-[#0b1023] to-[#111827] p-8">
+                            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.18),transparent_35%),radial-gradient(circle_at_bottom_left,rgba(168,85,247,0.14),transparent_28%)]" />
+
+                            <div className="relative z-10 w-full max-w-md rounded-2xl border border-white/10 bg-[#0b0f17]/90 p-6 shadow-[0_18px_50px_rgba(0,0,0,0.45)] backdrop-blur-xl transition-all duration-700">
+                                <div className="flex items-center justify-between gap-4">
+                                    <div className="text-sm font-semibold tracking-wide text-white">
+                                        {reviews[reviewIndex].company}
+                                    </div>
+                                    <div className="flex gap-1 text-amber-400 text-xs">
+                                        <span>★</span>
+                                        <span>★</span>
+                                        <span>★</span>
+                                        <span>★</span>
+                                        <span>★</span>
+                                    </div>
+                                </div>
+
+                                <p key={reviewIndex} className="mt-5 text-[15px] leading-7 text-gray-300 transition-opacity duration-500">
+                                    “{reviews[reviewIndex].quote}”
+                                </p>
+
+                                <div className="mt-6 flex items-center gap-3">
+                                    <div className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-sm font-bold text-white shadow-lg shadow-blue-500/20">
+                                        {reviews[reviewIndex].name.charAt(0)}
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-semibold text-white">{reviews[reviewIndex].name}</p>
+                                        <p className="text-xs text-gray-400">{reviews[reviewIndex].role}</p>
+                                    </div>
+                                </div>
+
+                                <div className="mt-5 flex gap-2">
+                                    {reviews.map((review, index) => (
+                                        <span
+                                            key={review.name}
+                                            onClick={() => setReviewIndex(index)}
+                                            className={`h-1.5 flex-1 cursor-pointer rounded-full transition-all duration-300 ${reviewIndex === index ? 'bg-blue-400' : 'bg-white/15 hover:bg-white/30'}`}
+                                        />
+                                    ))}
+                                </div>
+                            </div>
                         </div>
                     </CardContent>
                 </Card>
 
-                <FieldDescription className="px-6 text-center text-gray-600">
+                <FieldDescription className="px-6 text-center text-gray-400">
                     By clicking continue, you agree to our <a href="#" className="text-blue-600 hover:underline">Terms of Service</a>{" "}
                     and <a href="#" className="text-blue-600 hover:underline">Privacy Policy</a>.
                 </FieldDescription>
             </div>
-        </div>
+        </BackgroundLayout>
     );
 };
 
