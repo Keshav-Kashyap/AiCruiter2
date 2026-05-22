@@ -1,8 +1,10 @@
 // app/api/payment/route.js
-import { razorpay } from "@/lib/razorpay";
+import { getRazorpayClient } from "@/lib/razorpay";
 
 export async function POST(req) {
   try {
+    const razorpay = getRazorpayClient();
+
     const { amount, currency = "INR" } = await req.json();
     
     // Convert USD to INR if needed (approximate conversion rate: 1 USD = 83 INR)
