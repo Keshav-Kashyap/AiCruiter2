@@ -27,7 +27,7 @@ const steps = [
     icon: <Target className="w-8 h-8" />,
     title: "Choose Your Position",
     description: "Select your target job role, company, and interview type. We'll customize questions accordingly.",
-    image: "/step2.png", // Placeholder - you can update this
+    image: "/step3.png", // Placeholder - you can update this
     gradient: "from-purple-500 to-pink-500",
     delay: 0.2
   },
@@ -36,7 +36,7 @@ const steps = [
     icon: <Play className="w-8 h-8" />,
     title: "Start AI Interview",
     description: "Begin your practice session with AI-powered questions tailored to your position and experience.",
-    image: "/step3.png", // Placeholder - you can update this
+    image: "/step4.png", // Placeholder - you can update this
     gradient: "from-orange-500 to-red-500",
     delay: 0.3
   },
@@ -45,28 +45,10 @@ const steps = [
     icon: <MessageSquare className="w-8 h-8" />,
     title: "Get Real-time Feedback",
     description: "Receive instant AI feedback on your answers, communication skills, and technical knowledge.",
-    image: "/step4.png", // Placeholder - you can update this
+    image: "/step5.png", // Placeholder - you can update this
     gradient: "from-green-500 to-emerald-500",
     delay: 0.4
   },
-  {
-    number: "06",
-    icon: <BarChart3 className="w-8 h-8" />,
-    title: "Review Performance",
-    description: "Analyze detailed insights, strengths, and areas for improvement with comprehensive analytics.",
-    image: "/step5.png", // Placeholder - you can update this
-    gradient: "from-indigo-500 to-blue-500",
-    delay: 0.5
-  },
-  {
-    number: "07",
-    icon: <TrendingUp className="w-8 h-8" />,
-    title: "Improve & Succeed",
-    description: "Practice repeatedly with new questions, track progress, and ace your real interview with confidence.",
-    image: "/step6.png", // Placeholder - you can update this
-    gradient: "from-pink-500 to-rose-500",
-    delay: 0.6
-  }
 ];
 
 export default function HowItWorks() {
