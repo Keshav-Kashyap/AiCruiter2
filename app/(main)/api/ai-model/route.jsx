@@ -8,6 +8,43 @@ export async function POST(req) {
     const { jobPosition, jobDescription,companyName, duration, type, language } = await req.json();
 
     console.log("jobPosition:", jobPosition);
+	if (jobPosition === "mock") {
+    return NextResponse.json({
+        content: JSON.stringify({
+            interviewQuestions: [
+                {
+                    question: "Tell me about yourself.",
+                    type: "Behavioral"
+                },
+                {
+                    question: "Explain the difference between let, var and const.",
+                    type: "Technical"
+                },
+                {
+                    question: "What is REST API?",
+                    type: "Technical"
+                },
+                {
+                    question: "What is the difference between SQL and NoSQL databases?",
+                    type: "Technical"
+                },
+                {
+                    question: "Describe a challenge you faced in a project.",
+                    type: "Experience"
+                },
+                {
+                    question: "How would you optimize a slow website?",
+                    type: "Problem Solving"
+                },
+                {
+                    question: "How do you handle conflicts in a team?",
+                    type: "Behavioral"
+                }
+            ]
+        })
+    });
+}
+
     console.log("companyName",companyName)
     console.log("jobDescription:", jobDescription);
     console.log("duration:", duration);

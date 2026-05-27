@@ -1,22 +1,59 @@
 import { Button } from '@/components/ui/button';
 import { getAvatarColor, getInitial } from '@/services/Constants';
-import { ArrowRight, Copy, Send, Calendar, Clock, Users, ExternalLink, Mail, Globe } from 'lucide-react';
+import { ArrowRight, Copy, Calendar, Clock, Users, ExternalLink, Share2, Globe, Check } from 'lucide-react';
 import moment from 'moment'
 import Link from 'next/link';
-import React from 'react'
+import React, { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation';
+import { useUser } from '@/app/provider';
 import { toast } from 'sonner';
+import { joinInterviewSession } from '@/services/interviewSession';
 
 const InterviewCard = ({ interview, viewDetail = false }) => {
     const url = process.env.NEXT_PUBLIC_HOST_URL + '/' + interview?.interview_id
+    const router = useRouter();
+    const { user } = useUser();
+    const [copyLocked, setCopyLocked] = useState(false);
+    const [copySuccess, setCopySuccess] = useState(false);
     console.log("Card in data", interview);
 
+    useEffect(() => {
+        if (!copyLocked) return;
+
+        const timer = setTimeout(() => {
+            setCopyLocked(false);
+            setCopySuccess(false);
+        }, 5000);
+
+        return () => clearTimeout(timer);
+    }, [copyLocked]);
+
     const CopyLink = () => {
+        if (copyLocked) return;
+
         navigator.clipboard.writeText(url);
+        setCopyLocked(true);
+        setCopySuccess(true);
         toast.success("Link Copied Successfully");
     }
 
     const onSend = () => {
         window.location.href = "mailto:talkwithgamers?subject=AICruiter Interview Link&body=Interview Link: " + url
+    }
+
+    const handleJoinInterview = async () => {
+        try {
+            await joinInterviewSession({
+                interviewId: interview?.interview_id,
+                userName: user?.name || user?.full_name || user?.email,
+                userEmail: user?.email,
+                router,
+            });
+            toast.success('Starting interview...');
+        } catch (error) {
+            console.error('Error starting interview from card:', error);
+            toast.error(error?.message || 'Failed to start interview.');
+        }
     }
 
 
@@ -124,22 +161,36 @@ const InterviewCard = ({ interview, viewDetail = false }) => {
 
             {/* Action Buttons */}
             {!viewDetail ? (
-                <div className='flex gap-3 w-full'>
+                <div className='flex gap-3 w-full items-stretch'>
+                    <Button
+                        onClick={handleJoinInterview}
+                        className='flex-1 h-11 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 border-none shadow-lg hover:shadow-xl transition-all duration-200 group/btn'
+                    >
+                        <ExternalLink className='w-4 h-4 mr-2 group-hover/btn:scale-110 transition-transform duration-200' />
+                        Join
+                    </Button>
+
                     <Button
                         onClick={() => CopyLink()}
+                        disabled={copyLocked}
                         variant="outline"
-                        className='flex-1 group/btn border-gray-200 dark:border-gray-600 hover:border-blue-300 dark:hover:border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all duration-200'
+                        className='flex-1 h-11 group/btn border-gray-200 dark:border-gray-600 hover:border-blue-300 dark:hover:border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed'
                     >
-                        <Copy className='w-4 h-4 mr-2 group-hover/btn:scale-110 transition-transform duration-200' />
-                        Copy Link
+                        {copySuccess ? (
+                            <Check className='w-4 h-4 mr-2 text-green-600 dark:text-green-400' />
+                        ) : (
+                            <Copy className='w-4 h-4 mr-2 group-hover/btn:scale-110 transition-transform duration-200' />
+                        )}
+                        {copyLocked ? 'Copied' : 'Copy Link'}
                     </Button>
 
                     <Button
                         onClick={() => onSend()}
-                        className='flex-1 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 border-none shadow-lg hover:shadow-xl transition-all duration-200 group/btn'
+                        variant="outline"
+                        className='h-11 w-11 shrink-0 border-gray-200 dark:border-gray-600 hover:border-purple-300 dark:hover:border-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-all duration-200 group/btn flex items-center justify-center p-0'
+                        title='Share interview link'
                     >
-                        <Mail className='w-4 h-4 mr-2 group-hover/btn:scale-110 transition-transform duration-200' />
-                        Send
+                        <Share2 className='w-4 h-4 text-purple-600 dark:text-purple-400 group-hover/btn:scale-110 transition-transform duration-200' />
                     </Button>
                 </div>
             ) : (

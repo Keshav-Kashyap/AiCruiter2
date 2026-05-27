@@ -72,7 +72,7 @@ const QuestionList = ({ formData, onCreateLink }) => {
                     {
                         ...formData,
                         questionList: questionList,
-                        userEmail: user?.email,
+                        created_by: user?.id,
                         interview_id: interview_id
                     },
                 ])

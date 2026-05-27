@@ -44,7 +44,7 @@ const AllInterview = () => {
             let { data: interviews, error } = await supabase
                 .from('interviews')
                 .select('*')
-                .eq('userEmail', user?.email)
+                .eq('created_by', user?.id)
                 .order('id', { ascending: false })
 
             if (error) {

@@ -12,6 +12,7 @@ import { InterviewDataContext } from '@/app/context/InterviewDataContext'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import Loading from '@/components/Loading'
+import { joinInterviewSession } from '@/services/interviewSession'
 
 const Interview = () => {
     const { interview_id } = useParams();
@@ -75,21 +76,16 @@ const Interview = () => {
 
         setLoading(true);
         try {
-            let { data: interviews, error } = await supabase
-                .from('interviews')
-                .select("*")
-                .eq('interview_id', interview_id);
-
-            if (error) throw error;
-
-            setInterviewInfo({
+            const interviewSession = await joinInterviewSession({
+                interviewId: interview_id,
                 userName: userName.trim(),
                 userEmail: userEmail.trim(),
-                interviewData: interviews[0],
+                router,
             });
 
+            setInterviewInfo(interviewSession);
+
             toast.success("Starting your interview...");
-            router.push('/interview/' + interview_id + '/start');
         } catch (e) {
             console.error('Error joining interview:', e);
             toast.error("Failed to join interview. Please try again.");

@@ -26,7 +26,7 @@ function ScheduledInterview() {
         try {
             const result = await supabase.from('interviews')
                 .select('jobPosition,duration,interview_id,interview-feedback(userEmail)')
-                .eq('userEmail', user?.user?.email)
+                .eq('created_by', user?.user?.id)
                 .order('id', { ascending: false })
 
             console.log(result);

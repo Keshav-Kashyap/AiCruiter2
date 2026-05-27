@@ -24,8 +24,8 @@ const LatestInterviewsList = () => {
         try {
             let { data: interviews, error } = await supabase
                 .from('interviews')
-                .select('*')
-                .eq('userEmail', user?.email)
+                .select(`jobPosition ,duration,interview_id,language,CompanyName,created_at`)
+                .eq('created_by', user?.id)
                 .order('id', { ascending: false })
                 .limit(6)
 

@@ -28,7 +28,7 @@ const InterviewDetails = () => {
 
         const result = await supabase.from('interviews')
             .select(`jobPosition,jobDescription,type,questionList, created_at ,duration,interview_id,interview-feedback(userEmail,userName,feedback,created_at)`)
-            .eq('userEmail', user?.user?.email)
+            .eq('created_by', user?.user?.id)
             .eq('interview_id', interview_id)
             .order('id', { ascending: false })
 

@@ -1,24 +1,50 @@
+import { useUser } from '@/app/provider';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ArrowLeft, Calendar, Clock, Copy, List, Mail, Plus, Slack, MessageCircle, Check, ExternalLink, Share2 } from 'lucide-react';
-import Image from 'next/image';
 import Link from 'next/link';
 import React from 'react'
+import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { joinInterviewSession } from '@/services/interviewSession';
 
-const InterviewLink = (interview_id, formData) => {
-    console.log("Your Interview Id", interview_id.interview_id);
-    const url = process.env.NEXT_PUBLIC_HOST_URL + '/' + interview_id.interview_id;
+const InterviewLink = ({ interview_id, formData }) => {
+    console.log("Your Interview Id", interview_id);
+	console.log("Form Data:",formData)
 
-
-    const GetInterviewUrl = () => {
-        return url;
-    }
+    const url = process.env.NEXT_PUBLIC_HOST_URL + '/' + interview_id;
+    const router = useRouter();
+    const { user } = useUser();
 
     const onCopyLink = async () => {
         await navigator.clipboard.writeText(url);
         toast.success('Link copied to clipboard!');
     }
+    const handleJoinInterview = async () => {
+        try {
+            if (!interview_id) {
+                toast.error('Interview id is missing.');
+                return;
+            }
+
+            if (!user) {
+                toast.error('Please sign in before starting the interview.');
+                return;
+            }
+
+            await joinInterviewSession({
+                interviewId: interview_id,
+                userName: user?.name || user?.full_name || user?.email,
+                userEmail: user?.email,
+                router,
+            });
+
+            toast.success('Starting interview...');
+        } catch (error) {
+            console.error('Error starting interview from InterviewLink:', error);
+            toast.error('Failed to start interview. Please try again.');
+        }
+    };
 
     return (
         <div className='flex flex-col items-center w-full justify-center mt-10 space-y-8 max-w-4xl mx-auto px-4'>
@@ -56,7 +82,7 @@ const InterviewLink = (interview_id, formData) => {
                 <div className='space-y-4'>
                     <div className='p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-200 dark:border-gray-600'>
                         <Input
-                            defaultValue={GetInterviewUrl()}
+                            defaultValue={url}
                             disabled={true}
                             className='w-full bg-transparent border-none text-sm font-mono text-gray-700 dark:text-gray-300 focus:outline-none cursor-text'
                         />
@@ -64,7 +90,7 @@ const InterviewLink = (interview_id, formData) => {
 
                     <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
                         <Button
-                            onClick={() => window.open(GetInterviewUrl(), '_blank')}
+                            onClick={() => handleJoinInterview()}
                             className='flex items-center gap-3 bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 text-white py-3 px-6 transition-all duration-200 hover:scale-105 hover:shadow-lg group rounded-xl'
                         >
                             <ExternalLink className='h-5 w-5 group-hover:scale-110 transition-transform' />
