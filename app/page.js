@@ -1,6 +1,7 @@
 
 "use client"
 import Navbar from "@/components/Navbar";
+import Image from "next/image";
 import { MoveRight, Sparkles, Users, Target, Trophy, ChevronLeft, ChevronRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
@@ -101,12 +102,12 @@ export default function HeroSectionOne() {
         <div className="p-4 mt-30 max-w-7xl mx-auto relative z-10 w-full text-center">
           <h1 className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-bold mb-6">
             <span className="bg-gradient-to-b from-neutral-50 via-white/90 to-neutral-400 bg-clip-text text-transparent inline-block">
-              Your Personal AI Job Recruiter
+              Your AI Interview Coach
             </span>
           </h1>
 
           <p className="mt-6 font-normal text-sm sm:text-base md:text-lg text-neutral-300 max-w-2xl mx-auto leading-relaxed px-4">
-            Practice interviews with AI-powered question generation tailored to your position. Master technical, behavioral interviews with real-time feedback, time management, and resume-based questions - all completely free!
+            Practice technical, behavioral, and resume-based interviews with AI-generated questions, instant feedback, and better time management.
           </p>
 
           {/* Premium action buttons */}
@@ -131,6 +132,24 @@ export default function HeroSectionOne() {
 
 
       </div>
+
+      <section className="relative bg-black pb-8 sm:pb-14">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+          <div className="relative mx-auto overflow-hidden rounded-[2rem] border border-white/10 bg-white/5 p-2 shadow-[0_30px_80px_rgba(0,0,0,0.45)] backdrop-blur-xl sm:p-3 lg:p-4">
+            <div className="absolute inset-0 bg-gradient-to-b from-white/10 via-transparent to-transparent pointer-events-none" />
+            <div className="relative overflow-hidden rounded-[1.5rem] border border-white/10 bg-[#0b0f17]">
+              <Image
+                src="/main.png"
+                alt="AI recruiter dashboard preview"
+                width={1600}
+                height={1000}
+                priority
+                className="h-auto w-full object-cover object-center"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
 
       <HeroCompanies />
 

@@ -69,18 +69,15 @@ export default function Navbar({ onDashboard }) {
     return (
         <>
             <nav
-                className={`fixed top-0 left-0 right-0 z-50 flex w-full items-center justify-between 
-          px-4 sm:px-6 lg:px-8 py-4 sm:py-5 animate-fadeInUp 
-         transform transition-transform duration-500
-        ${visible ? "translate-y-0" : "-translate-y-full"}`}
+                className={`fixed top-3 left-1/2 z-50 flex w-[calc(100%-1rem)] max-w-6xl -translate-x-1/2 items-center justify-between rounded-3xl border border-white/10 bg-white/10 px-4 py-3 shadow-2xl shadow-black/30 backdrop-blur-xl sm:top-4 sm:w-[calc(100%-2rem)] sm:px-5 sm:py-4 lg:px-6 animate-fadeInUp transform transition-transform duration-500 ${visible ? "translate-y-0" : "-translate-y-full"}`}
             >
                 {/* Logo Section */}
                 <div className='flex flex-row justify-center items-center gap-2'>
-                    <div className="fw-16 h-16 p-3 bg-white/5 rounded-xl flex items-center justify-center group-hover:bg-white/10 transition-colors">
+                    <div className="h-14 w-14 p-3 bg-white/5 rounded-2xl flex items-center justify-center group-hover:bg-white/10 transition-colors">
                         <img src="/logo2.png" className='h-8 sm:h-9 lg:h-10 w-auto' alt="QRA Logo" />
 
                     </div>
-                    <h1 className="text-lg sm:text-xl lg:text-2xl font-bold bg-gradient-to-b from-neutral-50 via-white/90 to-neutral-400 bg-clip-text whitespace-nowrap">
+                    <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-white  bg-clip-text whitespace-nowrap">
 
 
                         QRA
