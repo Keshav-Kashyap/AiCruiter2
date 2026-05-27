@@ -31,6 +31,9 @@ const StartInterview = () => {
     const [callStarting, setCallStarting] = useState(false);
     const [showCodeEditor, setShowCodeEditor] = useState(false);
     const [editorWidth, setEditorWidth] = useState(45);
+    const silenceTimerRef = useRef(null);
+    const lastUserActivityRef = useRef(Date.now());
+    const silencePromptsRef = useRef(0);
 
     // Timer effect
     useEffect(() => {
@@ -50,6 +53,9 @@ const StartInterview = () => {
         const secs = seconds % 60;
         return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     };
+
+    const languageRaw = interviewInfo?.interviewData?.language || '';
+    const languageDisplay = languageRaw ? (languageRaw.charAt(0).toUpperCase() + languageRaw.slice(1)) : '';
 
     const safeStringify = (value) => {
         const seen = new WeakSet();
@@ -87,6 +93,18 @@ const StartInterview = () => {
                 try {
                     const safeMessage = JSON.parse(safeStringify(message));
                     setConversation(prev => [...prev, safeMessage]);
+                    // mark last user activity when message contains user content
+                    try {
+                        const conv = safeMessage?.conversation || safeMessage;
+                        if (Array.isArray(conv)) {
+                            const hasUser = conv.some(c => c?.role === 'user' || c?.source === 'user' || c?.speaker === 'user');
+                            if (hasUser) lastUserActivityRef.current = Date.now();
+                        } else if (safeMessage?.role === 'user') {
+                            lastUserActivityRef.current = Date.now();
+                        }
+                    } catch (e) {
+                        // ignore
+                    }
                 } catch {
                     setConversation(prev => [...prev, {
                         type: message?.type || 'unknown',
@@ -116,6 +134,9 @@ const StartInterview = () => {
             setActiveUser(false);
             setTypedAnswer('');
 
+            // Clear any silence watcher timers
+            clearSilenceWatcher();
+
             if (callFailedRef.current) {
                 toast.error('Interview disconnected. Please restart and try again.');
                 console.error('Call ended after a previous failure:', endReason);
@@ -143,6 +164,8 @@ const StartInterview = () => {
         const handleSpeechEnd = () => {
             console.log('AI finished speaking');
             setActiveUser(true);
+            // Start silence watcher after assistant finishes speaking
+            startSilenceWatcher();
         };
 
         const handleError = (error) => {
@@ -173,8 +196,60 @@ const StartInterview = () => {
                 vapi.off('speech-end', handleSpeechEnd);
                 vapi.off('error', handleError);
             }
+            clearSilenceWatcher();
         }
     }, []);
+
+    // Silence detection: if candidate doesn't speak after AI prompt, ask twice then end interview
+    const startSilenceWatcher = (timeoutSeconds = 15) => {
+        clearSilenceWatcher();
+        silenceTimerRef.current = setTimeout(async () => {
+            const elapsed = Date.now() - lastUserActivityRef.current;
+            if (elapsed >= timeoutSeconds * 1000) {
+                // no activity, prompt user
+                silencePromptsRef.current += 1;
+                promptUserForSpeech(silencePromptsRef.current);
+                if (silencePromptsRef.current >= 2) {
+                    // end interview after second unsuccessful prompt
+                    toast.error('No response detected. Ending interview.');
+                    stopInterview();
+                } else {
+                    // Give another interval
+                    startSilenceWatcher(timeoutSeconds);
+                }
+            }
+        }, timeoutSeconds * 1000);
+    };
+
+    const clearSilenceWatcher = () => {
+        if (silenceTimerRef.current) {
+            clearTimeout(silenceTimerRef.current);
+            silenceTimerRef.current = null;
+        }
+        silencePromptsRef.current = 0;
+    };
+
+    const promptUserForSpeech = (count) => {
+        try {
+            const lang = (interviewInfo?.interviewData?.language || 'english').toLowerCase();
+            let promptText = '';
+            if (lang === 'hindi' || lang === 'hinglish') {
+                promptText = count === 1 ? 'Aap kuch boliye, main aapki response sun raha hoon.' : 'Agar aap bolna bandh kar dete hain toh interview end kar diya jayega. Kripya jawab dein.';
+            } else {
+                promptText = count === 1 ? 'Please say something, I am listening.' : 'If you remain silent the interview will be ended. Please respond.';
+            }
+
+            // Use browser TTS to prompt the user (safer fallback)
+            if (typeof window !== 'undefined' && window.speechSynthesis) {
+                const utter = new SpeechSynthesisUtterance(promptText);
+                utter.lang = lang === 'hindi' ? 'hi-IN' : 'en-US';
+                window.speechSynthesis.cancel();
+                window.speechSynthesis.speak(utter);
+            }
+        } catch (e) {
+            console.error('Prompt TTS failed:', e);
+        }
+    };
 
     // Helper functions
     function getDeepgramLangCode(lang) {
@@ -866,33 +941,11 @@ Only conclude when the candidate explicitly finishes or asks to end the intervie
                                 )}
                             </div>
 
-                            <div className='max-w-3xl mx-auto mb-6'>
-                                <div className='flex flex-col sm:flex-row gap-3'>
-                                    <input
-                                        type='text'
-                                        value={typedAnswer}
-                                        onChange={(e) => setTypedAnswer(e.target.value)}
-                                        onKeyDown={(e) => {
-                                            if (e.key === 'Enter' && !e.shiftKey) {
-                                                e.preventDefault();
-                                                sendTypedAnswer();
-                                            }
-                                        }}
-                                        placeholder='Type your answer here if you cannot speak...'
-                                        className='flex-1 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-4 py-3 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20'
-                                    />
-                                    <button
-                                        onClick={sendTypedAnswer}
-                                        disabled={sendingTypedAnswer || !typedAnswer.trim() || !isCallActive}
-                                        className='inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-400'
-                                    >
-                                        {sendingTypedAnswer ? 'Sending...' : 'Send Answer'}
-                                    </button>
-                                </div>
-                                <p className='mt-2 text-xs text-center text-gray-500 dark:text-gray-400'>
-                                    You can type here anytime. Sending works after the interview starts.
-                                </p>
-                            </div>
+                                            <div className='max-w-3xl mx-auto mb-6'>
+                                                <p className='text-sm text-center text-gray-500 dark:text-gray-400'>
+                                                    Typing input removed for production; please use voice to answer during the interview.
+                                                </p>
+                                            </div>
 
                             {/* Status Text */}
                             <div className='text-center'>

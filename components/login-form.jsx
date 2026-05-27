@@ -1,3 +1,8 @@
+"use client"
+
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
+import { supabase } from "@/services/supaBaseClient"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -9,16 +14,113 @@ import {
   FieldSeparator,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Loader2 } from "lucide-react"
 
 export function LoginForm({
   className,
   ...props
 }) {
+  const router = useRouter()
+  const [formData, setFormData] = useState({ email: "", password: "" })
+  const [errors, setErrors] = useState({})
+  const [isLoading, setIsLoading] = useState(false)
+
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+
+      if (session) {
+        router.replace("/dashboard")
+      }
+    }
+
+    checkSession()
+  }, [router])
+
+  const handleInputChange = (field, value) => {
+    setFormData(prev => ({ ...prev, [field]: value }))
+    setErrors(prev => {
+      if (!prev[field]) {
+        return prev
+      }
+
+      const nextErrors = { ...prev }
+      delete nextErrors[field]
+      return nextErrors
+    })
+  }
+
+  const handleLogin = async (event) => {
+    event.preventDefault()
+
+    const nextErrors = {}
+
+    if (!formData.email.trim()) {
+      nextErrors.email = "Email is required"
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
+      nextErrors.email = "Please enter a valid email"
+    }
+
+    if (!formData.password) {
+      nextErrors.password = "Password is required"
+    }
+
+    if (Object.keys(nextErrors).length > 0) {
+      setErrors(nextErrors)
+      return
+    }
+
+    setIsLoading(true)
+    setErrors({})
+
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: formData.email.trim(),
+        password: formData.password,
+      })
+
+      if (error) {
+        setErrors({ general: error.message || "Failed to log in. Please try again." })
+        return
+      }
+
+      router.replace("/dashboard")
+    } catch (error) {
+      console.error("Login error:", error)
+      setErrors({ general: "Something went wrong. Please try again." })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const signInWithGoogle = async () => {
+    setIsLoading(true)
+
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/dashboard`,
+        },
+      })
+
+      if (error) {
+        setErrors({ google: error.message })
+      }
+    } catch (error) {
+      console.error("Google sign-in error:", error)
+      setErrors({ google: "Failed to sign in with Google" })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card className="overflow-hidden p-0">
         <CardContent className="grid p-0 md:grid-cols-2">
-          <form className="p-6 md:p-8">
+          <form onSubmit={handleLogin} className="p-6 md:p-8">
             <FieldGroup>
               <div className="flex flex-col items-center gap-2 text-center">
                 <h1 className="text-2xl font-bold">Welcome back</h1>
@@ -26,9 +128,24 @@ export function LoginForm({
                   Login to your Acme Inc account
                 </p>
               </div>
+
+              {(errors.general || errors.google) && (
+                <p className="text-sm text-red-500">{errors.general || errors.google}</p>
+              )}
+
               <Field>
                 <FieldLabel htmlFor="email">Email</FieldLabel>
-                <Input id="email" type="email" placeholder="m@example.com" required />
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="m@example.com"
+                  value={formData.email}
+                  onChange={(e) => handleInputChange("email", e.target.value.toLowerCase().trim())}
+                  required
+                  autoComplete="email"
+                  disabled={isLoading}
+                />
+                {errors.email && <p className="text-sm text-red-500">{errors.email}</p>}
               </Field>
               <Field>
                 <div className="flex items-center">
@@ -37,10 +154,28 @@ export function LoginForm({
                     Forgot your password?
                   </a>
                 </div>
-                <Input id="password" type="password" required />
+                <Input
+                  id="password"
+                  type="password"
+                  value={formData.password}
+                  onChange={(e) => handleInputChange("password", e.target.value)}
+                  required
+                  autoComplete="current-password"
+                  disabled={isLoading}
+                />
+                {errors.password && <p className="text-sm text-red-500">{errors.password}</p>}
               </Field>
               <Field>
-                <Button type="submit">Login</Button>
+                <Button type="submit" disabled={isLoading || !formData.email || !formData.password}>
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Logging in...
+                    </>
+                  ) : (
+                    "Login"
+                  )}
+                </Button>
               </Field>
               <FieldSeparator className="*:data-[slot=field-separator-content]:bg-card">
                 Or continue with
@@ -54,7 +189,7 @@ export function LoginForm({
                   </svg>
                   <span className="sr-only">Login with Apple</span>
                 </Button>
-                <Button variant="outline" type="button">
+                <Button variant="outline" type="button" onClick={signInWithGoogle} disabled={isLoading}>
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
                     <path
                       d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z"

@@ -70,7 +70,7 @@ export default function HeroSectionOne() {
     //   return; // wait till user is ready
     // }
     if (!user) {
-      router.push("/auth");
+      router.push("/auth/login");
     } else {
       router.push("/dashboard");
     }

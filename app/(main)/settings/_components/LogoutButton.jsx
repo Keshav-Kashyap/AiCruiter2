@@ -17,7 +17,7 @@ const LogoutButton = () => {
                 toast.error('Error logging out');
             } else {
                 toast.success('Logout successful!');
-                window.location.href = '/auth';
+                window.location.href = '/auth/login';
             }
         } catch (error) {
             console.error('Error:', error);

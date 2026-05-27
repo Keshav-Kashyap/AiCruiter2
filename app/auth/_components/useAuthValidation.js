@@ -4,10 +4,22 @@ import { useState, useEffect } from 'react';
 export const useAuthValidation = () => {
     const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
     const validatePhone = (phone) => /^[6-9]\d{9}$/.test(phone);
+    const validatePassword = (password) => {
+        if (typeof password !== 'string') return false;
+
+        const trimmedPassword = password.trim();
+        return (
+            trimmedPassword.length >= 8 &&
+            /[a-z]/.test(trimmedPassword) &&
+            /[A-Z]/.test(trimmedPassword) &&
+            /\d/.test(trimmedPassword)
+        );
+    };
 
     return {
         validateEmail,
-        validatePhone
+        validatePhone,
+        validatePassword
     };
 };
 

@@ -9,7 +9,9 @@ const supabase = createClient(
 export async function POST(req) {
     try {
         const body = await req.json();
-        const { email, otp } = body;
+        let { email, otp } = body;
+		email = email.trim().toLowerCase()
+
 
         if (!email || !otp) {
             return NextResponse.json(
@@ -19,49 +21,31 @@ export async function POST(req) {
         }
 
         // User fetch
-        const { data: user, error } = await supabase
-            .from("Users")
-            .select("id, otp, otp_expire, is_verified")
+        const { data: otpRecord, error } = await supabase
+            .from("Otp")
+            .select("email, otp, expires_at")
             .eq("email", email)
             .single();
-
-        if (error || !user) {
-            return NextResponse.json({ error: "User not found" }, { status: 404 });
-        }
-
-        // Agar pehle se verified hai
-        if (user.is_verified) {
-            return NextResponse.json(
-                { success: true, message: "User already verified" },
-                { status: 200 }
-            );
+        if (error || !otpRecord) {
+            return NextResponse.json({ error: "otp not found" }, { status: 404 });
         }
 
         // OTP check
-        if (String(user.otp) !== String(otp)) {
+        if (String(otpRecord.otp) !== String(otp)) {
             return NextResponse.json({ error: "Invalid OTP" }, { status: 400 });
         }
 
         // Expiry check
         const now = new Date();
-        const expiry = new Date(user.otp_expire);
+        const expiry = new Date(otpRecord.expire_at);
 
         if (now > expiry) {
             return NextResponse.json({ error: "OTP expired" }, { status: 400 });
         }
-
-        // Update user -> mark verified
-        const { error: updateError } = await supabase
-            .from("Users")
-            .update({ otp: null, otp_expire: null, is_verified: true })
-            .eq("id", user.id);
-
-        if (updateError) {
-            return NextResponse.json(
-                { error: "Failed to update verification status" },
-                { status: 500 }
-            );
-        }
+		await supabase
+    		.from("Otp")
+    		.delete()
+    		.eq("email", email);
 
         return NextResponse.json({
             success: true,

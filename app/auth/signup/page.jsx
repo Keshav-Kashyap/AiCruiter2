@@ -1,86 +1,47 @@
 "use client"
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { supabase } from '@/services/supaBaseClient';
-import { useUser } from '@/app/provider';
-import { useAuthValidation, useAuthTimer } from './_components/useAuthValidation';
-
-// shadcn/ui imports
+import { useAuthValidation, useAuthTimer } from '../_components/useAuthValidation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { Field, FieldDescription, FieldGroup, FieldLabel, FieldSeparator } from '@/components/ui/field';
-import { ArrowLeft, Mail, CheckCircle, Loader2 } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Eye, EyeOff, Loader2 } from 'lucide-react';
 import Loading from '@/components/Loading';
 import { cn } from '@/lib/utils';
-import BackgroundLayout from './_components/BackGroundLayout';
+import BackgroundLayout from '../_components/BackGroundLayout';
 
 const Login = () => {
-    const [currentStep, setCurrentStep] = useState('input'); // input, otp, userdetails, success
-    const [reviewIndex, setReviewIndex] = useState(0);
+    const router = useRouter();
+    const [currentStep, setCurrentStep] = useState('input'); 
     const [formData, setFormData] = useState({
         email: '',
         otp: '',
-        userName: ''
+        userName: '',
+		password: '',
+		confirmPassword: ''
     });
     const [errors, setErrors] = useState({});
     const [isLoading, setIsLoading] = useState(false);
     const [success, setSuccess] = useState('');
     const [otpSent, setOtpSent] = useState(false);
+    const [existingUser, setExistingUser] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-    const { user, loading, updateUserName, refreshUser } = useUser();
-    const { validateEmail } = useAuthValidation();
+    const { validateEmail, validatePassword } = useAuthValidation();
     const { timer, setTimer } = useAuthTimer();
 
-    const reviews = [
-        {
-            name: 'Aarav Mehta',
-            role: 'Frontend Developer',
-            company: 'StackWave',
-            quote: 'The interview flow felt calm and professional. I liked how clear the questions were and how fast the feedback came through.',
-        },
-        {
-            name: 'Sneha Kapoor',
-            role: 'Product Designer',
-            company: 'Northstar Labs',
-            quote: 'The whole experience looked premium and modern. It made the platform feel trustworthy from the first minute.',
-        },
-        {
-            name: 'Karan Shah',
-            role: 'Backend Engineer',
-            company: 'CloudMint',
-            quote: 'Clean UI, smooth flow, and a solid interview experience. It honestly feels like a next-gen hiring product.',
-        },
-    ];
-
-    useEffect(() => {
-        const interval = setInterval(() => {
-            setReviewIndex((prev) => (prev + 1) % reviews.length);
-        }, 4500);
-
-        return () => clearInterval(interval);
-    }, [reviews.length]);
-
-    // Check if user is already logged in and has complete profile
-    useEffect(() => {
-        const checkAuthStatus = async () => {
-            const { data: { session } } = await supabase.auth.getSession();
-
-            if (session && !loading) {
-                if (user && user.name && user.name.trim()) {
-                    window.location.href = '/dashboard';
-                } else if (user && (!user.name || !user.name.trim())) {
-                    setCurrentStep('userdetails');
-                }
-            }
-        };
-
-        if (!loading) {
-            checkAuthStatus();
-        }
-    }, [user, loading]);
+    const review = {
+        name: 'Sarah Reyes',
+        role: 'Co-founder, Brightloop',
+        company: 'Brightloop',
+        quote: 'Nexus completely changed how our team ships. What used to take three tools and two hours now takes one tab and ten minutes.',
+    };
 
     const clearErrors = (field = null) => {
         if (field) {
@@ -94,10 +55,37 @@ const Login = () => {
     };
 
     const handleInputChange = (field, value) => {
-        setFormData(prev => ({ ...prev, [field]: value }));
-        clearErrors(field);
+        setFormData(prev => {
+            const nextFormData = { ...prev, [field]: value };
+
+            if (field === 'password' || field === 'confirmPassword') {
+                const password = field === 'password' ? value : nextFormData.password;
+                const confirmPassword = field === 'confirmPassword' ? value : nextFormData.confirmPassword;
+
+                setErrors(prevErrors => {
+                    const nextErrors = { ...prevErrors };
+
+                    if (nextErrors.confirmPassword) {
+                        delete nextErrors.confirmPassword;
+                    }
+
+                    if (password && confirmPassword && password !== confirmPassword) {
+                        nextErrors.confirmPassword = 'Password do not match';
+                    }
+
+                    return nextErrors;
+                });
+            }
+
+            return nextFormData;
+        });
+
+        if (field !== 'password' && field !== 'confirmPassword') {
+            clearErrors(field);
+        }
     };
 
+	//OAth Login
     const signInWithGoogle = async () => {
         setIsLoading(true);
         try {
@@ -149,6 +137,7 @@ const Login = () => {
 
             if (response.ok) {
                 setOtpSent(true);
+                setExistingUser(Boolean(data.existingUser));
                 setSuccess('OTP sent successfully to your email!');
                 setCurrentStep('otp');
                 setTimer(60);
@@ -163,7 +152,7 @@ const Login = () => {
 
         setIsLoading(false);
     };
-
+	//verify-otp funx
     const verifyOTP = async () => {
         if (!formData.otp || formData.otp.length !== 6) {
             setErrors({ otp: 'Please enter a valid 6-digit OTP' });
@@ -190,87 +179,7 @@ const Login = () => {
 
             if (response.ok) {
                 setSuccess('Email verified successfully!');
-
-                // Create Supabase auth session
-                try {
-                    // Try to sign in first
-                    const { data: signInData, error: signInError } = await supabase.auth.signInWithOtp({
-                        email: formData.email,
-                        options: { shouldCreateUser: false }, // don't auto create
-                    });
-
-                    if (signInError) {
-                        // Agar sign in failed and error bolta hai "user not found"
-                        if (signInError.message.includes("not found") || signInError.message.includes("No user")) {
-                            // Tab create new user
-                            const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-                                email: formData.email,
-                                password: `temp_password_${Date.now()}_${Math.random()}`,
-                            });
-
-                            if (signUpError) {
-                                console.error("SignUp error:", signUpError);
-                                setErrors({ otp: "Failed to create session. Please try again." });
-                                setIsLoading(false);
-                                return;
-                            }
-                        } else {
-                            console.error("SignIn error:", signInError);
-                            setErrors({ otp: "Login failed. Please try again." });
-                            setIsLoading(false);
-                            return;
-                        }
-                    }
-
-                    // Wait for auth to complete and refresh user data
-                    setTimeout(async () => {
-                        try {
-                            await refreshUser();
-
-                            // Additional wait to ensure user state is properly updated
-                            setTimeout(async () => {
-                                // Get fresh user data directly from database instead of relying on context state
-                                const { data: { user: authUser } } = await supabase.auth.getUser();
-
-                                if (authUser) {
-                                    // Check user in database
-                                    let { data: dbUser, error: dbError } = await supabase
-                                        .from('Users')
-                                        .select("*")
-                                        .eq('email', authUser.email)
-                                        .single();
-
-                                    if (dbError) {
-                                        console.error('Error fetching user from DB:', dbError);
-                                        setCurrentStep("userdetails");
-                                        return;
-                                    }
-
-                                    if (dbUser && dbUser.name && dbUser.name.trim()) {
-                                        // User has name, go to dashboard
-                                        setCurrentStep("success");
-                                        setTimeout(() => {
-                                            window.location.href = "/dashboard";
-                                        }, 1000);
-                                    } else {
-                                        // User exists but no name, go to user details
-                                        setCurrentStep("userdetails");
-                                    }
-                                } else {
-                                    // No auth user, go to user details as fallback
-                                    setCurrentStep("userdetails");
-                                }
-                            }, 1000);
-                        } catch (error) {
-                            console.error('Error in user refresh:', error);
-                            setCurrentStep("userdetails");
-                        }
-                    }, 1500);
-
-                } catch (authError) {
-                    console.error("Auth error:", authError);
-                    setErrors({ otp: "Failed to authenticate. Please try again." });
-                }
+                setCurrentStep('userdetails');
             } else {
                 setErrors({ otp: data.error || 'Invalid OTP. Please try again.' });
             }
@@ -299,25 +208,63 @@ const Login = () => {
             return;
         }
 
+        if (!formData.password) {
+            setErrors({ password: 'Password is required' });
+            return;
+        }
+
+        if (!validatePassword(formData.password)) {
+            setErrors({ password: 'Password must be at least 8 characters and include uppercase, lowercase, and a number.' });
+            return;
+        }
+
+        if (!formData.confirmPassword) {
+            setErrors({ confirmPassword: 'Please confirm your password' });
+            return;
+        }
+
+        if (formData.password !== formData.confirmPassword) {
+            setErrors({ confirmPassword: 'Passwords do not match' });
+            return;
+        }
+
         setIsLoading(true);
         setErrors({});
 
         try {
-            const success = await updateUserName(formData.userName.trim());
+            const response = await fetch('/api/register-user', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    email: formData.email,
+                    password: formData.password,
+                    name: formData.userName.trim(),
+                }),
+            });
 
-            if (success) {
-                setSuccess('Profile updated successfully!');
-                setCurrentStep('success');
+            const data = await response.json();
 
-                setTimeout(() => {
-                    window.location.href = '/dashboard';
-                }, 2000);
-            } else {
-                setErrors({ userName: 'Failed to save user details. Please try again.' });
+            if (!response.ok) {
+                setErrors({ general: data.error || 'Failed to create account. Please try again.' });
+                return;
             }
+
+            const { error: signInError } = await supabase.auth.signInWithPassword({
+                email: formData.email,
+                password: formData.password,
+            });
+
+            if (signInError) {
+                setErrors({ general: signInError.message || 'Account created, but login failed. Please try again.' });
+                return;
+            }
+
+                router.replace('/dashboard');
         } catch (error) {
             console.error('Error saving user details:', error);
-            setErrors({ userName: 'Something went wrong. Please try again.' });
+            setErrors({ general: error?.message || 'Something went wrong while creating the account. Please try again.' });
         }
 
         setIsLoading(false);
@@ -341,7 +288,12 @@ const Login = () => {
             setOtpSent(false);
         } else if (currentStep === 'userdetails') {
             setCurrentStep('input');
-            setFormData(prev => ({ ...prev, userName: '' }));
+            setFormData(prev => ({
+                ...prev,
+                userName: '',
+                password: '',
+                confirmPassword: ''
+            }));
         }
         setErrors({});
         setSuccess('');
@@ -368,8 +320,6 @@ const Login = () => {
                 return 'Verify your email';
             case 'userdetails':
                 return 'Complete your profile';
-            case 'success':
-                return 'Welcome!';
             default:
                 return 'Sign in';
         }
@@ -383,8 +333,6 @@ const Login = () => {
                 return `We've sent a 6-digit code to ${formData.email}`;
             case 'userdetails':
                 return 'Please tell us your name to complete setup';
-            case 'success':
-                return 'Your account has been set up successfully!';
             default:
                 return '';
         }
@@ -393,14 +341,22 @@ const Login = () => {
     return (
         <BackgroundLayout>
             <div className="w-full max-w-6xl">
-                <Card className="overflow-hidden p-0 border border-white/10 bg-white/5 backdrop-blur-2xl shadow-[0_24px_80px_rgba(0,0,0,0.45)]">
+                <Card className="overflow-hidden p-0 border border-white/10 bg-[#0f1218] shadow-[0_24px_70px_rgba(0,0,0,0.35)]">
                     <CardContent className="grid p-0 md:grid-cols-2 bg-transparent">
-                        <div className="p-6 md:p-8 bg-transparent">
+                        <div className="relative p-6 md:p-8 bg-[#0f1218]">
+                            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
                             <FieldGroup>
+                                <div className="mb-8 flex items-center justify-center md:justify-start">
+                                    <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.24em] text-gray-400">
+                                        <span className="h-1.5 w-1.5 rounded-full bg-white/60" />
+                                        Secure sign in
+                                    </div>
+                                </div>
+
                                 {/* Header */}
-                                <div className="flex flex-col items-center gap-2 text-center">
-                                    <h1 className="text-2xl font-bold text-white">{getStepTitle()}</h1>
-                                    <p className="text-balance text-gray-300">
+                                <div className="flex flex-col items-center gap-2 text-center md:items-start md:text-left">
+                                    <h1 className="text-3xl font-semibold tracking-tight text-white md:text-[2.15rem]">{getStepTitle()}</h1>
+                                    <p className="max-w-md text-sm leading-6 text-gray-400 md:text-[15px]">
                                         {getStepDescription()}
                                     </p>
                                 </div>
@@ -421,14 +377,6 @@ const Login = () => {
                                     </Alert>
                                 )}
 
-                                {/* Success View */}
-                                {currentStep === 'success' && (
-                                    <div className="text-center py-8">
-                                        <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-                                        <p className="text-lg text-white">Redirecting to dashboard...</p>
-                                    </div>
-                                )}
-
                                 {/* Login Form */}
                                 {currentStep === 'input' && (
                                     <>
@@ -437,7 +385,7 @@ const Login = () => {
                                             <Input
                                                 id="email"
                                                 type="email"
-                                                placeholder="m@example.com"
+                                                placeholder="aman@example.com"
                                                 value={formData.email}
                                                 onChange={(e) => handleInputChange('email', e.target.value.toLowerCase().trim())}
                                                 disabled={isLoading}
@@ -467,7 +415,7 @@ const Login = () => {
                                             </Button>
                                         </Field>
 
-                                        <FieldSeparator className="*:data-[slot=field-separator-content]:bg-[#050816] text-gray-400">
+                                        <FieldSeparator className="bg-[#0f1216] text-gray-400">
                                             Or continue with
                                         </FieldSeparator>
 
@@ -505,7 +453,7 @@ const Login = () => {
                                         </Field>
 
                                         <FieldDescription className="text-center text-gray-300">
-                                            Don&apos;t have an account? <a href="#" className="text-blue-400 hover:underline">Sign up</a>
+                                            Already have an account? <a href="/auth/login" className="text-blue-400 hover:underline">Login in</a>
                                         </FieldDescription>
                                     </>
                                 )}
@@ -530,14 +478,15 @@ const Login = () => {
                                                     value={formData.otp}
                                                     onChange={handleOtpChange}
                                                     maxLength={6}
+                                                    className="text-white caret-white"
                                                 >
                                                     <InputOTPGroup>
-                                                        <InputOTPSlot index={0} />
-                                                        <InputOTPSlot index={1} />
-                                                        <InputOTPSlot index={2} />
-                                                        <InputOTPSlot index={3} />
-                                                        <InputOTPSlot index={4} />
-                                                        <InputOTPSlot index={5} />
+                                                        <InputOTPSlot index={0} className="border-white/15 bg-white/5 text-white" />
+                                                        <InputOTPSlot index={1} className="border-white/15 bg-white/5 text-white" />
+                                                        <InputOTPSlot index={2} className="border-white/15 bg-white/5 text-white" />
+                                                        <InputOTPSlot index={3} className="border-white/15 bg-white/5 text-white" />
+                                                        <InputOTPSlot index={4} className="border-white/15 bg-white/5 text-white" />
+                                                        <InputOTPSlot index={5} className="border-white/15 bg-white/5 text-white" />
                                                     </InputOTPGroup>
                                                 </InputOTP>
                                             </div>
@@ -612,11 +561,73 @@ const Login = () => {
                                                 <p className="text-red-300 text-sm mt-1">{errors.userName}</p>
                                             )}
                                         </Field>
+										
+                                        <Field>
+                                            <FieldLabel htmlFor="password" className="text-gray-200 font-medium">Password</FieldLabel>
+                                            <div className="relative">
+                                                <Input
+                                                    id="password"
+                                                    type={showPassword ? 'text' : 'password'}
+                                                    placeholder="Password"
+                                                    value={formData.password}
+                                                    onChange={(e) => handleInputChange('password', e.target.value)}
+                                                    disabled={isLoading}
+                                                    maxLength={50}
+                                                    autoComplete="new-password"
+                                                    className="border-white/15 bg-white/5 pr-10 text-white placeholder:text-gray-500 focus:border-blue-500 focus:ring-blue-500"
+                                                />
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() => setShowPassword(prev => !prev)}
+                                                    disabled={isLoading}
+                                                    className="absolute right-1 top-1/2 h-8 w-8 -translate-y-1/2 text-gray-400 hover:bg-white/5 hover:text-white"
+                                                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                                                >
+                                                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                                </Button>
+                                            </div>
+                                            {errors.password && (
+                                                <p className="text-red-300 text-sm mt-1">{errors.password}</p>
+                                            )}
+                                        </Field>
+										
+                                        <Field>
+                                            <FieldLabel htmlFor="confirmPassword" className="text-gray-200 font-medium">Confirm Password</FieldLabel>
+                                            <div className="relative">
+                                                <Input
+                                                    id="confirmPassword"
+                                                    type={showConfirmPassword ? 'text' : 'password'}
+                                                    placeholder="Confirm password"
+                                                    value={formData.confirmPassword}
+                                                    onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
+                                                    disabled={isLoading}
+                                                    maxLength={50}
+                                                    autoComplete="new-password"
+                                                    className="border-white/15 bg-white/5 pr-10 text-white placeholder:text-gray-500 focus:border-blue-500 focus:ring-blue-500"
+                                                />
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() => setShowConfirmPassword(prev => !prev)}
+                                                    disabled={isLoading}
+                                                    className="absolute right-1 top-1/2 h-8 w-8 -translate-y-1/2 text-gray-400 hover:bg-white/5 hover:text-white"
+                                                    aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
+                                                >
+                                                    {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                                </Button>
+                                            </div>
+                                            {errors.confirmPassword && (
+                                                <p className="text-red-300 text-sm mt-1">{errors.confirmPassword}</p>
+                                            )}
+                                        </Field>
 
                                         <Field>
                                             <Button
                                                 onClick={handleUserDetailsSubmit}
-                                                disabled={isLoading || !formData.userName.trim() || formData.userName.trim().length < 2}
+                                                disabled={isLoading || !formData.userName.trim() || formData.userName.trim().length < 2 || !formData.password || !formData.confirmPassword || formData.password !== formData.confirmPassword}
                                                 className="w-full bg-blue-600 hover:bg-blue-700 text-white disabled:bg-gray-300 disabled:text-gray-500"
                                                 type="button"
                                             >
@@ -635,54 +646,42 @@ const Login = () => {
                             </FieldGroup>
                         </div>
 
-                        <div className="relative hidden md:flex items-center justify-center overflow-hidden bg-gradient-to-br from-[#070b1a] via-[#0b1023] to-[#111827] p-8">
-                            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.18),transparent_35%),radial-gradient(circle_at_bottom_left,rgba(168,85,247,0.14),transparent_28%)]" />
+                        <div className="relative hidden items-center justify-center overflow-hidden border-l border-white/10 bg-[#0d1016] p-8 md:flex">
+                            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.04),transparent_55%)]" />
 
-                            <div className="relative z-10 w-full max-w-md rounded-2xl border border-white/10 bg-[#0b0f17]/90 p-6 shadow-[0_18px_50px_rgba(0,0,0,0.45)] backdrop-blur-xl transition-all duration-700">
+                            <div className="relative z-10 w-full max-w-md rounded-[28px] border border-white/10 bg-[#11151c] p-7 shadow-[0_20px_60px_rgba(0,0,0,0.32)] transition-all duration-700">
                                 <div className="flex items-center justify-between gap-4">
-                                    <div className="text-sm font-semibold tracking-wide text-white">
-                                        {reviews[reviewIndex].company}
+                                    <div className="text-[11px] font-medium uppercase tracking-[0.26em] text-gray-500">
+                                        Customer note
                                     </div>
-                                    <div className="flex gap-1 text-amber-400 text-xs">
-                                        <span>★</span>
-                                        <span>★</span>
-                                        <span>★</span>
-                                        <span>★</span>
-                                        <span>★</span>
+                                    <div className="text-xs text-gray-400">
+                                        {review.company}
                                     </div>
                                 </div>
 
-                                <p key={reviewIndex} className="mt-5 text-[15px] leading-7 text-gray-300 transition-opacity duration-500">
-                                    “{reviews[reviewIndex].quote}”
+                                <div className="mt-6 text-[56px] leading-none text-white/10">“</div>
+
+                                <p className="-mt-3 font-serif text-[20px] leading-[1.65] tracking-[-0.01em] text-white/90 md:text-[21px]">
+                                    {review.quote}
                                 </p>
 
-                                <div className="mt-6 flex items-center gap-3">
-                                    <div className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-sm font-bold text-white shadow-lg shadow-blue-500/20">
-                                        {reviews[reviewIndex].name.charAt(0)}
+                                <div className="mt-7 flex items-center gap-3">
+                                    <div className="flex h-12 w-12 items-center justify-center rounded-full border border-white/10 bg-white/5 text-sm font-semibold text-white">
+                                        {review.name.charAt(0)}
                                     </div>
                                     <div>
-                                        <p className="text-sm font-semibold text-white">{reviews[reviewIndex].name}</p>
-                                        <p className="text-xs text-gray-400">{reviews[reviewIndex].role}</p>
+                                        <p className="text-sm font-medium text-white">{review.name}</p>
+                                        <p className="text-xs text-gray-400">{review.role}</p>
                                     </div>
-                                </div>
-
-                                <div className="mt-5 flex gap-2">
-                                    {reviews.map((review, index) => (
-                                        <span
-                                            key={review.name}
-                                            onClick={() => setReviewIndex(index)}
-                                            className={`h-1.5 flex-1 cursor-pointer rounded-full transition-all duration-300 ${reviewIndex === index ? 'bg-blue-400' : 'bg-white/15 hover:bg-white/30'}`}
-                                        />
-                                    ))}
                                 </div>
                             </div>
                         </div>
                     </CardContent>
                 </Card>
 
-                <FieldDescription className="px-6 text-center text-gray-400">
-                    By clicking continue, you agree to our <a href="#" className="text-blue-600 hover:underline">Terms of Service</a>{" "}
-                    and <a href="#" className="text-blue-600 hover:underline">Privacy Policy</a>.
+                <FieldDescription className="px-6 text-center text-gray-500">
+                    By clicking continue, you agree to our <a href="#" className="text-gray-300 hover:text-white hover:underline">Terms of Service</a>{" "}
+                    and <a href="#" className="text-gray-300 hover:text-white hover:underline">Privacy Policy</a>.
                 </FieldDescription>
             </div>
         </BackgroundLayout>

@@ -2,34 +2,13 @@ import React from 'react';
 
 const BackgroundLayout = ({ children }) => {
     return (
-        <div className="relative min-h-screen w-full flex flex-col items-center justify-center overflow-hidden bg-black px-4 py-8">
-            {/* Floating orbs */}
-            <div
-                className="absolute top-10 left-10 md:top-20 md:left-20 w-48 h-48 md:w-72 md:h-72 bg-blue-400/20 rounded-full blur-3xl animate-pulse"
-                style={{
-                    animation: 'float1 8s ease-in-out infinite'
-                }}
-            />
+        <div className="relative min-h-screen w-full overflow-hidden bg-[#0b0d12] px-4 py-8 text-white">
+            <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(255,255,255,0.03),transparent_18%),linear-gradient(to_right,rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:100%_100%,72px_72px,72px_72px] opacity-40" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.06),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(255,255,255,0.04),transparent_28%)]" />
 
-            <div
-                className="absolute bottom-10 right-10 md:bottom-20 md:right-20 w-64 h-64 md:w-96 md:h-96 bg-purple-400/20 rounded-full blur-3xl animate-pulse"
-                style={{
-                    animation: 'float2 10s ease-in-out infinite'
-                }}
-            />
-
-            {children}
-
-            <style jsx>{`
-                @keyframes float1 {
-                    0%, 100% { transform: translateY(0px) rotate(0deg); }
-                    50% { transform: translateY(-20px) rotate(5deg); }
-                }
-                @keyframes float2 {
-                    0%, 100% { transform: translateY(0px) rotate(0deg); }
-                    50% { transform: translateY(-15px) rotate(-5deg); }
-                }
-            `}</style>
+            <div className="relative z-10 flex min-h-[calc(100vh-4rem)] items-center justify-center">
+                {children}
+            </div>
         </div>
     );
 };

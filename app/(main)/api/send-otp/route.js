@@ -2,6 +2,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import nodemailer from "nodemailer";
+import { OTPVerification } from "../EmailTemplates/OTPVerification";
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -12,7 +13,7 @@ export async function POST(req) {
     try {
         const body = await req.json();
         const { email } = body;
-
+		console.log("HItted for ",email);
         if (!email) {
             return NextResponse.json({ error: "Email required" }, { status: 400 });
         }
@@ -20,13 +21,14 @@ export async function POST(req) {
         // OTP generate
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
         const otpExpire = new Date(Date.now() + 5 * 60 * 1000); // 5 min valid
-
-        // 1. Pehle check karo user exist hai ya nahi
+		console.log("otp",otp);
+        //check user alredy  exists
         const { data: user, error: fetchError } = await supabase
             .from("Users")
             .select("id")
             .eq("email", email)
             .single();
+		
 
         if (fetchError && fetchError.code !== "PGRST116") {
             console.error("Fetch error:", fetchError);
@@ -36,37 +38,31 @@ export async function POST(req) {
             );
         }
 
-        if (!user) {
-            // Agar user nahi hai -> insert new
-            const { error: insertError } = await supabase.from("Users").insert({
-                email,
-                otp,
-                otp_expire: otpExpire.toISOString(),
-                is_verified: false,
-            });
+        if(user){
+			 return NextResponse.json(
+                    { error: "User already exists" },
+                    { status: 409 }
+                );
+		}
+		
+		const { error } = await supabase
+    		.from("Otp")
+    		.upsert({
+      			  email,
+       			  otp,
+        		  expires_at: otpExpire.toISOString()
+    			});
+			
+			
 
-            if (insertError) {
-                console.error("Insert error:", insertError);
+            if (error) {
+                console.error("Update error:", error);
                 return NextResponse.json(
-                    { error: "Failed to insert new user" },
+                    { error: 'Failed to upsert OTP ' },
                     { status: 500 }
                 );
             }
-        } else {
-            // Agar user hai -> update otp
-            const { error: updateError } = await supabase
-                .from("Users")
-                .update({ otp, otp_expire: otpExpire.toISOString() })
-                .eq("id", user.id);
-
-            if (updateError) {
-                console.error("Update error:", updateError);
-                return NextResponse.json(
-                    { error: "Failed to update OTP" },
-                    { status: 500 }
-                );
-            }
-        }
+        
 
         // 2. Email send (Nodemailer)
         const transporter = nodemailer.createTransport({
@@ -80,8 +76,8 @@ export async function POST(req) {
         await transporter.sendMail({
             from: `"Your App" <${process.env.EMAIL_USER}>`,
             to: email,
-            subject: "Your OTP Code",
-            html: `<p>Your OTP code is <b>${otp}</b>. It will expire in 5 minutes.</p>`,
+            subject: "Verify your email",
+            html: OTPVerification({ otp }),
         });
 
         return NextResponse.json({

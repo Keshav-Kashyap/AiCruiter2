@@ -15,7 +15,7 @@ export default function FeaturesPage() {
     }
 
     if (!user) {
-      router.push("/auth");
+      router.push("/auth/login");
     } else {
       router.push("/dashboard");
     }
