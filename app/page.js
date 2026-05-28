@@ -168,10 +168,10 @@ export default function HeroSectionOne() {
       <div className="bg-black">
         <Features />
       </div>
-
+{/* 
       <div className="bg-black">
         <CompanyInterviewLanding />
-      </div>
+      </div> */}
 
       <div className="bg-black">
         <HowItWorks />

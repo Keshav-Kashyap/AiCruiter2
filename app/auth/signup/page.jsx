@@ -341,7 +341,7 @@ const Login = () => {
     return (
         <BackgroundLayout>
             <div className="w-full max-w-6xl">
-                <Card className="overflow-hidden p-0 border border-white/10 bg-[#0f1218] shadow-[0_24px_70px_rgba(0,0,0,0.35)]">
+                <Card className="overflow-hidden p-0 border border-white/10 bg-[#0f1218] shadow-[0_24px_70px_rgba(0,0,0,0.35)] mb-5">
                     <CardContent className="grid p-0 md:grid-cols-2 bg-transparent">
                         <div className="relative p-6 md:p-8 bg-[#0f1218]">
                             <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
@@ -415,7 +415,7 @@ const Login = () => {
                                             </Button>
                                         </Field>
 
-                                        <FieldSeparator className="bg-[#0f1216] text-gray-400">
+                                        <FieldSeparator className="*:data-[slot=field-separator-content]:bg-[#0f1218] text-gray-400">
                                             Or continue with
                                         </FieldSeparator>
 
@@ -664,7 +664,7 @@ const Login = () => {
                     </CardContent>
                 </Card>
 
-                <FieldDescription className="px-6 text-center text-gray-500">
+                <FieldDescription className="px-6 text-center text-gray-500 ">
                     By clicking continue, you agree to our <a href="#" className="text-gray-300 hover:text-white hover:underline">Terms of Service</a>{" "}
                     and <a href="#" className="text-gray-300 hover:text-white hover:underline">Privacy Policy</a>.
                 </FieldDescription>
