@@ -6,7 +6,7 @@ export async function POST(req) {
 
     const { conversation } = await req.json();
     const FINAL_PROMPT = FEEDBACK_PROMT.replace('{{conversation}}', JSON.stringify(conversation));
-
+	console.log("final promt:",FINAL_PROMPT)
     try {
         const openai = new OpenAI({
             baseURL: "https://openrouter.ai/api/v1",
@@ -15,7 +15,7 @@ export async function POST(req) {
         })
 
         const completion = await openai.chat.completions.create({
-            model: "google/gemma-3n-e2b-it:free",
+            model: "openrouter/owl-alpha",
             messages: [
                 { role: "user", content: FINAL_PROMPT }
             ],
@@ -23,6 +23,7 @@ export async function POST(req) {
         })
 
         const message = completion?.choices?.[0]?.message;
+		console.log(message);
         if (!message) {
             throw new Error("No response from AI model");
         }
