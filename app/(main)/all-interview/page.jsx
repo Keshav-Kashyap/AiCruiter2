@@ -1,31 +1,28 @@
 "use client"
 import { useUser } from '@/app/provider'
 import { Button } from '@/components/ui/button'
-import { supabase } from '@/services/supaBaseClient'
-import { Video, Plus, Loader2, RefreshCw, Archive, Calendar, Search, Filter, Grid, List, Clock, FileText } from 'lucide-react'
+import { Video, Plus, Loader2, RefreshCw, Archive, Calendar, Search, Grid, List, Clock, FileText } from 'lucide-react'
 import React, { useEffect, useState } from 'react'
 import InterviewCard from '../dashboard/_components/InterviewCard'
-import { toast } from 'sonner'
+import InterviewListSkeleton from '../dashboard/_components/InterviewListSkeleton'
+import { useInterview } from '../dashboard/_components/useInterview'
+import Link from 'next/link'
 
 const AllInterview = () => {
-    const [interviewList, setInterviewList] = useState([]);
-    const [filteredList, setFilteredList] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [refreshing, setRefreshing] = useState(false);
+    const { user, loading: userLoading } = useUser();
+    const [limit, setLimit] = useState(10);
     const [searchTerm, setSearchTerm] = useState('');
-    const [viewMode, setViewMode] = useState('grid'); // grid or list
-    const { user } = useUser();
+    const [viewMode, setViewMode] = useState('grid');
+    const [filteredList, setFilteredList] = useState([]);
+
+    const { interviewList = [], loading, isFetching, refetch } = useInterview(user, userLoading, limit);
 
     useEffect(() => {
-        user && GetInterViewList();
-    }, [user])
-
-    useEffect(() => {
-        // Filter interviews based on search term
         if (searchTerm) {
             const filtered = interviewList.filter(interview =>
                 interview.jobPosition?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                interview.jobDescription?.toLowerCase().includes(searchTerm.toLowerCase())
+                interview.jobDescription?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                interview.CompanyName?.toLowerCase().includes(searchTerm.toLowerCase())
             );
             setFilteredList(filtered);
         } else {
@@ -33,45 +30,23 @@ const AllInterview = () => {
         }
     }, [searchTerm, interviewList]);
 
-    const GetInterViewList = async (isRefresh = false) => {
-        if (isRefresh) {
-            setRefreshing(true);
-        } else {
-            setLoading(true);
-        }
-
-        try {
-            let { data: interviews, error } = await supabase
-                .from('interviews')
-                .select('*')
-                .eq('created_by', user?.id)
-                .order('id', { ascending: false })
-
-            if (error) {
-                toast.error('Failed to fetch interviews');
-                console.error('Error:', error);
-                return;
+    // Infinite Scroll handler - Load 10 more on scroll near bottom
+    useEffect(() => {
+        const handleScroll = () => {
+            if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 300) {
+                if (!isFetching && interviewList.length >= limit) {
+                    setLimit(prev => prev + 10);
+                }
             }
+        };
 
-            console.log(interviews);
-            setInterviewList(interviews || []);
-            setFilteredList(interviews || []);
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, [isFetching, interviewList.length, limit]);
 
-            if (isRefresh) {
-                toast.success('Interviews refreshed successfully');
-            }
-        } catch (error) {
-            console.error('Error fetching interviews:', error);
-            toast.error('Something went wrong');
-        } finally {
-            setLoading(false);
-            setRefreshing(false);
-        }
-    }
-
-    const handleRefresh = () => {
-        GetInterViewList(true);
-    }
+    const handleRefresh = async () => {
+        await refetch();
+    };
 
     const getStats = () => {
         const total = interviewList.length;
@@ -82,7 +57,7 @@ const AllInterview = () => {
         }).length;
 
         return { total, thisMonth };
-    }
+    };
 
     const { total, thisMonth } = getStats();
 
@@ -108,11 +83,11 @@ const AllInterview = () => {
                     <Button
                         variant="outline"
                         onClick={handleRefresh}
-                        disabled={refreshing}
+                        disabled={isFetching}
                         className="hover:bg-purple-50 dark:hover:bg-purple-900/20"
                     >
-                        <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-                        {refreshing ? 'Refreshing...' : 'Refresh'}
+                        <RefreshCw className={`w-4 h-4 mr-2 ${isFetching ? 'animate-spin' : ''}`} />
+                        {isFetching ? 'Refreshing...' : 'Refresh'}
                     </Button>
                 </div>
             </div>
@@ -195,17 +170,7 @@ const AllInterview = () => {
             {/* Content Section */}
             <div className="space-y-4">
                 {loading ? (
-                    <div className="flex flex-col items-center justify-center py-16 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
-                        <div className="p-4 bg-purple-100 dark:bg-purple-900 rounded-full mb-4">
-                            <Loader2 className="w-8 h-8 text-purple-600 dark:text-purple-400 animate-spin" />
-                        </div>
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                            Loading Interviews
-                        </h3>
-                        <p className="text-gray-500 dark:text-gray-400 text-center">
-                            Please wait while we fetch your interview data...
-                        </p>
-                    </div>
+                    <InterviewListSkeleton limit={6} />
                 ) : (
                     <>
                         {interviewList.length === 0 ? (
@@ -219,10 +184,12 @@ const AllInterview = () => {
                                 <p className="text-gray-500 dark:text-gray-400 text-center mb-6 max-w-md">
                                     You haven't created any interviews yet. Start by creating your first interview to begin the hiring process.
                                 </p>
-                                <Button className="bg-primary hover:bg-primary/90 text-white font-semibold px-6 py-3">
-                                    <Plus className="w-5 h-5 mr-2" />
-                                    Create New Interview
-                                </Button>
+                                <Link href="/dashboard/create-interview">
+                                    <Button className="bg-primary hover:bg-primary/90 text-white font-semibold px-6 py-3">
+                                        <Plus className="w-5 h-5 mr-2" />
+                                        Create New Interview
+                                    </Button>
+                                </Link>
                             </div>
                         ) : filteredList.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-12 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
@@ -260,13 +227,21 @@ const AllInterview = () => {
                                         </div>
                                     ))}
                                 </div>
+
+                                {/* Incremental Scroll Loading Spinner indicator */}
+                                {isFetching && interviewList.length > 0 && (
+                                    <div className="flex justify-center items-center py-6 gap-2 text-sm text-gray-500 dark:text-gray-400">
+                                        <Loader2 className="w-5 h-5 animate-spin text-purple-600 dark:text-purple-400" />
+                                        <span>Loading more interviews...</span>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </>
                 )}
             </div>
         </div>
-    )
-}
+    );
+};
 
-export default AllInterview
+export default AllInterview;

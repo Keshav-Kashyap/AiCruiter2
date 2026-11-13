@@ -86,47 +86,52 @@ format: interviewQuestions=[
 🎯 The goal is to create a structured, relevant, and time-optimized interview plan for a {{jobTitle}} role.`
 
 
-export const FEEDBACK_PROMT = `{{conversation}}
+export const FEEDBACK_PROMT = `Based on the following interview conversation between AI interviewer and candidate:
 
-Depends on this Interview Conversation between assitant and user, 
+{{conversation}}
 
-Give me feedback for user interview. Give me rating out of 10 for technical Skills, 
-
-Communication, Problem Solving, Experince. Also give me summery in 3 lines 
-
-about the interview and one line to let me know whether is recommanded 
-
-for hire or not with msg. Give me response in JSON format
+Evaluate the interview performance and provide comprehensive feedback in strictly valid JSON format matching this exact schema structure:
 
 {
-
-    feedback:{
-
-        rating:{
-
-            techicalSkills:5,
-
-            communication:6,
-
-            problemSolving:4,
-
-            experince:7
-
-        },
-
-        summery:<in 3 Line>,
-
-        Recommendation:'',
-
-        RecommendationMsg:''
-
-
-
-    }
-
+  "feedback": {
+    "rating": {
+      "technicalSkills": 5,
+      "communication": 6,
+      "problemSolving": 4,
+      "experience": 7,
+      "overall": 5.5
+    },
+    "summary": "Provide a concise summary of the candidate's interview performance in 2-3 sentences.",
+    "strengths": [
+      "Communicates ideas clearly",
+      "Has relevant practical experience"
+    ],
+    "areasForImprovement": [
+      "Improve problem-solving approach",
+      "Strengthen technical fundamentals"
+    ],
+    "technicalAssessment": {
+      "knowledge": "Good / Moderate / Needs Improvement",
+      "depth": "Good / Moderate / Needs Improvement",
+      "practicalApplication": "Good / Moderate / Needs Improvement",
+      "problemSolving": "Good / Moderate / Needs Improvement"
+    },
+    "communicationAssessment": {
+      "clarity": "Good / Moderate / Needs Improvement",
+      "confidence": "Good / Moderate / Needs Improvement",
+      "fluency": "Good / Moderate / Needs Improvement"
+    },
+    "recommendation": true,
+    "recommendationMessage": "Provide a detailed message explaining whether the candidate is recommended for the role and what further steps should be taken.",
+    "finalScore": 5.5,
+    "interviewStatus": "Completed"
+  }
 }
 
-`
+IMPORTANT INSTRUCTIONS FOR JSON GENERATION:
+1. "recommendation" MUST BE A BOOLEAN VALUE ONLY (true or false). Do NOT use strings like "Recommended", "Not Recommended", "Yes", or "No". Return strictly boolean true or false.
+2. All ratings and scores should be numeric out of 10.
+3. Return ONLY valid JSON format without markdown code blocks or extra text outside JSON.`;
 
 
 

@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/select"
 import { companySelected, InterviewType } from '@/services/Constants'
 import { Button } from '@/components/ui/button'
-import { ArrowRight, Briefcase, FileText, Clock, Tags, Globe } from 'lucide-react'
+import { ArrowRight, Briefcase, FileText, Clock, Tags, Globe, Lock } from 'lucide-react'
 
 
 const FormContainer = ({ onHandleInputChange, GoToNext }) => {
@@ -157,9 +157,24 @@ const FormContainer = ({ onHandleInputChange, GoToNext }) => {
                     <SelectContent className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600">
                         <SelectItem value="5 min" className="text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-600">5 min</SelectItem>
                         <SelectItem value="15 min" className="text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-600">15 min</SelectItem>
-                        <SelectItem value="30 min" className="text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-600">30 min</SelectItem>
-                        <SelectItem value="45 min" className="text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-600">45 min</SelectItem>
-                        <SelectItem value="60 min" className="text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-600">60 min</SelectItem>
+                        <SelectItem value="30 min" disabled className="text-gray-400 dark:text-gray-500 opacity-60 cursor-not-allowed">
+                            <div className="flex items-center justify-between w-full gap-3">
+                                <span>30 min</span>
+                                <Lock className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
+                            </div>
+                        </SelectItem>
+                        <SelectItem value="45 min" disabled className="text-gray-400 dark:text-gray-500 opacity-60 cursor-not-allowed">
+                            <div className="flex items-center justify-between w-full gap-3">
+                                <span>45 min</span>
+                                <Lock className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
+                            </div>
+                        </SelectItem>
+                        <SelectItem value="60 min" disabled className="text-gray-400 dark:text-gray-500 opacity-60 cursor-not-allowed">
+                            <div className="flex items-center justify-between w-full gap-3">
+                                <span>60 min</span>
+                                <Lock className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
+                            </div>
+                        </SelectItem>
                     </SelectContent>
                 </Select>
             </div>

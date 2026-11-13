@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2, Mic, Phone, Volume2, VolumeX } from 'lucide-react';
+import { Loader2, Mic, Phone, Volume2, VolumeX, Plus } from 'lucide-react';
 
 const InterviewControls = ({
     isCallActive,
@@ -14,15 +14,16 @@ const InterviewControls = ({
     onEnd,
     onToggleVolumeSlider,
     onVolumeChange,
+    onExtendDuration,
 }) => {
     return (
         <div className='bg-white dark:bg-gray-800 rounded-xl shadow-lg flex flex-col items-center justify-center h-60 p-6 mb-6'>
-            <div className='flex items-center justify-center gap-6 mb-6'>
+            <div className='flex items-center justify-center gap-4 sm:gap-6 mb-6 flex-wrap'>
                 {!isCallActive && !loading && (
                     <button
                         onClick={onStart}
                         disabled={callStarting}
-                        className={`group relative h-16 w-16 rounded-full flex items-center justify-center transition-all duration-300 transform hover:scale-110 shadow-xl ${callStarting
+                        className={`relative h-16 w-16 rounded-full flex items-center justify-center transition-all duration-300 transform hover:scale-110 shadow-xl ${callStarting
                             ? 'bg-gray-400 cursor-not-allowed'
                             : 'bg-green-500 hover:bg-green-600 shadow-green-500/40'
                             } text-white`}
@@ -32,16 +33,13 @@ const InterviewControls = ({
                         ) : (
                             <Phone className='h-7 w-7' />
                         )}
-                        <span className='absolute -bottom-10 left-1/2 transform -translate-x-1/2 text-xs text-gray-600 dark:text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap'>
-                            {callStarting ? 'Starting...' : 'Start Interview'}
-                        </span>
                     </button>
                 )}
 
                 {isCallActive && (
                     <button
                         onClick={onToggleMute}
-                        className={`group relative h-14 w-14 rounded-full flex items-center justify-center transition-all duration-300 transform hover:scale-110 ${isMuted
+                        className={`relative h-14 w-14 rounded-full flex items-center justify-center transition-all duration-300 transform hover:scale-110 ${isMuted
                             ? 'bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/30'
                             : 'bg-gray-500 hover:bg-gray-600 dark:bg-gray-600 dark:hover:bg-gray-700 shadow-lg shadow-gray-500/30'
                             }`}
@@ -51,21 +49,15 @@ const InterviewControls = ({
                         ) : (
                             <Mic className='h-6 w-6 text-white' />
                         )}
-                        <span className='absolute -bottom-8 left-1/2 transform -translate-x-1/2 text-xs text-gray-600 dark:text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity duration-200'>
-                            {isMuted ? 'Unmute' : 'Mute'}
-                        </span>
                     </button>
                 )}
 
                 {isCallActive && !loading && (
                     <button
                         onClick={onEnd}
-                        className='group relative h-16 w-16 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center transition-all duration-300 transform hover:scale-110 shadow-xl shadow-red-500/40'
+                        className='relative h-16 w-16 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center transition-all duration-300 transform hover:scale-110 shadow-xl shadow-red-500/40'
                     >
                         <Phone className='h-7 w-7 rotate-[135deg]' />
-                        <span className='absolute -bottom-10 left-1/2 transform -translate-x-1/2 text-xs text-gray-600 dark:text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap'>
-                            End Interview
-                        </span>
                     </button>
                 )}
 
@@ -79,16 +71,13 @@ const InterviewControls = ({
                     <div className='relative'>
                         <button
                             onClick={onToggleVolumeSlider}
-                            className='group relative h-14 w-14 bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 text-white rounded-full flex items-center justify-center transition-all duration-300 transform hover:scale-110 shadow-lg shadow-blue-500/30'
+                            className='relative h-14 w-14 bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 text-white rounded-full flex items-center justify-center transition-all duration-300 transform hover:scale-110 shadow-lg shadow-blue-500/30'
                         >
                             <Volume2 className='h-6 w-6' />
-                            <span className='absolute -bottom-8 left-1/2 transform -translate-x-1/2 text-xs text-gray-600 dark:text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity duration-200'>
-                                Volume
-                            </span>
                         </button>
 
                         {showVolumeSlider && (
-                            <div className='absolute -top-20 left-1/2 transform -translate-x-1/2 bg-white dark:bg-gray-700 p-3 rounded-lg shadow-lg border dark:border-gray-600'>
+                            <div className='absolute -top-20 left-1/2 transform -translate-x-1/2 bg-white dark:bg-gray-700 p-3 rounded-lg shadow-lg border dark:border-gray-600 z-10'>
                                 <input
                                     type='range'
                                     min='0'
@@ -105,19 +94,16 @@ const InterviewControls = ({
                         )}
                     </div>
                 )}
+
+
             </div>
 
             <div className='text-center'>
-                {loading ? (
-                    <p className='text-blue-600 dark:text-blue-400 font-medium flex items-center justify-center gap-2'>
-                        <Loader2 className='h-4 w-4 animate-spin' />
-                        Generating Feedback...
-                    </p>
-                ) : callStarting ? (
-                    <p className='text-orange-600 dark:text-orange-400 font-medium flex items-center justify-center gap-2'>
-                        <Loader2 className='h-4 w-4 animate-spin' />
-                        Initializing Interview...
-                    </p>
+                {callStarting || loading ? (
+                    <div className='text-blue-600 dark:text-blue-400 font-medium flex items-center justify-center gap-2'>
+                        <div className='w-2.5 h-2.5 bg-blue-500 rounded-full animate-ping' />
+                        <span>Connecting with AI Agent...</span>
+                    </div>
                 ) : isCallActive ? (
                     <div className='text-green-600 dark:text-green-400 font-medium flex items-center justify-center gap-2'>
                         <div className='w-2 h-2 bg-green-500 rounded-full animate-pulse' />
@@ -126,11 +112,9 @@ const InterviewControls = ({
                 ) : (
                     <div className='space-y-2'>
                         <p className='text-gray-900 dark:text-white font-medium'>
-                            Ready to Start Professional Interview
+                            Ready to Start Interview
                         </p>
-                        <p className='text-sm text-gray-500 dark:text-gray-400'>
-                            Click the green button to begin • Use code editor for technical questions
-                        </p>
+                       
                     </div>
                 )}
             </div>

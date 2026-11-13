@@ -63,7 +63,6 @@ export default function Navbar({ onDashboard }) {
     const navLinks = [
         { href: "/features", label: "Features" },
         { href: "/pricing", label: "Pricing" },
-        { href: "/about", label: "About" }
     ];
 
     return (

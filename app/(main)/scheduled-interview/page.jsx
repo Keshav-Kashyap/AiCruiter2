@@ -1,48 +1,36 @@
 "use client"
 import { useUser } from '@/app/provider'
 import { Button } from '@/components/ui/button'
-import { supabase } from '@/services/supaBaseClient'
-import { Video, Calendar, Users, Plus, Loader2, RefreshCw, ChevronRight, FileText, Clock } from 'lucide-react'
+import { Video, Calendar, Users, Plus, Loader2, RefreshCw, FileText, Clock } from 'lucide-react'
 import React, { useEffect, useState } from 'react'
 import InterviewCard from '../dashboard/_components/InterviewCard'
+import InterviewListSkeleton from '../dashboard/_components/InterviewListSkeleton'
+import { useInterview } from '../dashboard/_components/useInterview'
+import Link from 'next/link'
 
 function ScheduledInterview() {
-    const user = useUser();
-    const [interviewList, setInterviewList] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [refreshing, setRefreshing] = useState(false);
+    const { user, loading: userLoading } = useUser();
+    const [limit, setLimit] = useState(10);
 
+    const { interviewList = [], loading, isFetching, refetch } = useInterview(user, userLoading, limit);
+
+    // Infinite Scroll handler - Load 10 more on scroll near bottom
     useEffect(() => {
-        user && GetInterviewList();
-    }, [user])
+        const handleScroll = () => {
+            if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 300) {
+                if (!isFetching && interviewList.length >= limit) {
+                    setLimit(prev => prev + 10);
+                }
+            }
+        };
 
-    const GetInterviewList = async (isRefresh = false) => {
-        if (isRefresh) {
-            setRefreshing(true);
-        } else {
-            setLoading(true);
-        }
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, [isFetching, interviewList.length, limit]);
 
-        try {
-            const result = await supabase.from('interviews')
-                .select('jobPosition,duration,interview_id,interview-feedback(userEmail)')
-                .eq('created_by', user?.user?.id)
-                .order('id', { ascending: false })
-
-            console.log(result);
-            setInterviewList(result.data || []);
-        } catch (error) {
-            console.error('Error fetching interviews:', error);
-            setInterviewList([]);
-        } finally {
-            setLoading(false);
-            setRefreshing(false);
-        }
-    }
-
-    const handleRefresh = () => {
-        GetInterviewList(true);
-    }
+    const handleRefresh = async () => {
+        await refetch();
+    };
 
     const getStats = () => {
         const totalInterviews = interviewList?.length || 0;
@@ -51,12 +39,12 @@ function ScheduledInterview() {
         ).length || 0;
 
         return { totalInterviews, interviewsWithFeedback };
-    }
+    };
 
     const { totalInterviews, interviewsWithFeedback } = getStats();
 
     return (
-        <div className="mt-8 space-y-6">
+        <div className=" space-y-6">
             {/* Header Section */}
             <div className="flex items-center justify-between p-6 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
                 <div className="flex items-center gap-4">
@@ -77,11 +65,11 @@ function ScheduledInterview() {
                     <Button
                         variant="outline"
                         onClick={handleRefresh}
-                        disabled={refreshing}
+                        disabled={isFetching}
                         className="hover:bg-blue-50 dark:hover:bg-blue-900/20"
                     >
-                        <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-                        {refreshing ? 'Refreshing...' : 'Refresh'}
+                        <RefreshCw className={`w-4 h-4 mr-2 ${isFetching ? 'animate-spin' : ''}`} />
+                        {isFetching ? 'Refreshing...' : 'Refresh'}
                     </Button>
                 </div>
             </div>
@@ -132,17 +120,7 @@ function ScheduledInterview() {
             {/* Content Section */}
             <div className="space-y-4">
                 {loading ? (
-                    <div className="flex flex-col items-center justify-center py-16 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
-                        <div className="p-4 bg-blue-100 dark:bg-blue-900 rounded-full mb-4">
-                            <Loader2 className="w-8 h-8 text-blue-600 dark:text-blue-400 animate-spin" />
-                        </div>
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                            Loading Interviews
-                        </h3>
-                        <p className="text-gray-500 dark:text-gray-400 text-center">
-                            Please wait while we fetch your interview data...
-                        </p>
-                    </div>
+                    <InterviewListSkeleton limit={6} />
                 ) : (
                     <>
                         {interviewList?.length === 0 ? (
@@ -156,34 +134,12 @@ function ScheduledInterview() {
                                 <p className="text-gray-500 dark:text-gray-400 text-center mb-6 max-w-md">
                                     Get started by creating your first interview. Set up questions, configure settings, and start interviewing candidates.
                                 </p>
-                                <Button className="bg-primary hover:bg-primary/90 text-white font-semibold px-6 py-3">
-                                    <Plus className="w-5 h-5 mr-2" />
-                                    Create New Interview
-                                </Button>
-
-                                <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4 max-w-2xl">
-                                    <div className="text-center p-4">
-                                        <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center mx-auto mb-3">
-                                            <Plus className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-                                        </div>
-                                        <h4 className="font-medium text-gray-900 dark:text-white mb-1">Create Interview</h4>
-                                        <p className="text-xs text-gray-500 dark:text-gray-400">Set up questions and job details</p>
-                                    </div>
-                                    <div className="text-center p-4">
-                                        <div className="w-12 h-12 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center mx-auto mb-3">
-                                            <Users className="w-6 h-6 text-green-600 dark:text-green-400" />
-                                        </div>
-                                        <h4 className="font-medium text-gray-900 dark:text-white mb-1">Invite Candidates</h4>
-                                        <p className="text-xs text-gray-500 dark:text-gray-400">Share interview links</p>
-                                    </div>
-                                    <div className="text-center p-4">
-                                        <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900 rounded-lg flex items-center justify-center mx-auto mb-3">
-                                            <FileText className="w-6 h-6 text-purple-600 dark:text-purple-400" />
-                                        </div>
-                                        <h4 className="font-medium text-gray-900 dark:text-white mb-1">Review Results</h4>
-                                        <p className="text-xs text-gray-500 dark:text-gray-400">Analyze candidate feedback</p>
-                                    </div>
-                                </div>
+                                <Link href="/dashboard/create-interview">
+                                    <Button className="bg-primary hover:bg-primary/90 text-white font-semibold px-6 py-3">
+                                        <Plus className="w-5 h-5 mr-2" />
+                                        Create New Interview
+                                    </Button>
+                                </Link>
                             </div>
                         ) : (
                             <div className="space-y-4">
@@ -204,13 +160,21 @@ function ScheduledInterview() {
                                         </div>
                                     ))}
                                 </div>
+
+                                {/* Incremental Scroll Loading Indicator */}
+                                {isFetching && interviewList.length > 0 && (
+                                    <div className="flex justify-center items-center py-6 gap-2 text-sm text-gray-500 dark:text-gray-400">
+                                        <Loader2 className="w-5 h-5 animate-spin text-blue-600 dark:text-blue-400" />
+                                        <span>Loading more interviews...</span>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </>
                 )}
             </div>
         </div>
-    )
+    );
 }
 
-export default ScheduledInterview
+export default ScheduledInterview;

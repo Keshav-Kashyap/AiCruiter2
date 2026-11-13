@@ -11,7 +11,7 @@ const DashboardProvider = ({ children }) => {
             <AppSidebar />
 
 
-            <div className='  bg-gray-100 dark:bg-gray-900 p-10 w-full'>
+            <div className='  bg-gray-100 dark:bg-gray-900 px-10 py-5 w-full'>
 
 
                 {/* <SidebarTrigger /> */}
@@ -21,7 +21,7 @@ const DashboardProvider = ({ children }) => {
                 </div>
 
 
-                <WelcomeContainer />
+           
 
                 {children}
 

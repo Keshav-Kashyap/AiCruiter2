@@ -1,3 +1,4 @@
-import { createContext } from "react";
+import { UserDetailContext, UserProvider, useUser } from './UserProvider';
 
-export const UserDetailContext = createContext();
+export { UserDetailContext, UserProvider, useUser };
+export default UserDetailContext;

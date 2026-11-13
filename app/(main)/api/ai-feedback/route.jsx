@@ -10,12 +10,12 @@ export async function POST(req) {
     try {
         const openai = new OpenAI({
             baseURL: "https://openrouter.ai/api/v1",
-            apiKey: process.env.OPENROUTER_API_KEY2,
+            apiKey: process.env.OPENROUTER_API_KEY,
 
         })
 
         const completion = await openai.chat.completions.create({
-            model: "openrouter/owl-alpha",
+            model: "openrouter/free",
             messages: [
                 { role: "user", content: FINAL_PROMPT }
             ],
@@ -23,7 +23,7 @@ export async function POST(req) {
         })
 
         const message = completion?.choices?.[0]?.message;
-		console.log(message);
+		console.log("this is feedbackmesage:",message);
         if (!message) {
             throw new Error("No response from AI model");
         }

@@ -6,7 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Vapi from '@vapi-ai/web';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { X } from 'lucide-react';
+import { X, AlertTriangle } from 'lucide-react';
 
 import { InterviewDataContext } from '@/app/context/InterviewDataContext';
 import { supabase } from '@/services/supaBaseClient';
@@ -15,6 +15,7 @@ import StartInterviewHeader from './_components/StartInterviewHeader';
 import InterviewParticipantCard from './_components/InterviewParticipantCard';
 import InterviewControls from './_components/InterviewControls';
 import CodeEditorPanel from './_components/CodeEditorPanel';
+import FeedbackGeneratingLoader from './_components/FeedbackGeneratingLoader';
 import {
     buildQuestionList,
     formatLanguageLabel,
@@ -23,34 +24,77 @@ import {
     getFirstMessage,
     getOpenAIVoice,
     getSystemPrompt,
-    safeStringify,
 } from './_components/interviewSessionHelpers';
 
 const StartInterview = () => {
     const { interviewInfo, setInterviewInfo } = useContext(InterviewDataContext);
-    const vapiRef = useRef(null);
-    const callEndReasonRef = useRef(null);
-    const callFailedRef = useRef(false);
-    const [activeUser, setActiveUser] = useState(false);
-    const [conversation, setConversation] = useState([]);
     const { interview_id } = useParams();
     const router = useRouter();
+
+    const vapiRef = useRef(null);
+    const feedbackSentRef = useRef(false);
+    const reminderWarnedRef = useRef(false);
+    const timeUpWarnedRef = useRef(false);
+    const conversationRef = useRef([]);
+    const insertedRecordIdRef = useRef(null);
+    const interviewInfoRef = useRef(interviewInfo);
+
+    useEffect(() => {
+        interviewInfoRef.current = interviewInfo;
+    }, [interviewInfo]);
+
+    // Helper to reliably get current session details (handling closures and sessionStorage fallback)
+    const getSessionInfo = () => {
+        let session = interviewInfoRef.current || interviewInfo;
+        if (!session?.userName || !session?.userEmail) {
+            if (typeof window !== 'undefined') {
+                try {
+                    const storedSession = sessionStorage.getItem('interviewSession');
+                    if (storedSession) {
+                        const parsed = JSON.parse(storedSession);
+                        if (parsed) {
+                            session = { ...parsed, ...session };
+                        }
+                    }
+                } catch (e) {
+                    console.error("Error parsing stored interview session:", e);
+                }
+            }
+        }
+        return session || {};
+    };
+
+    const [conversation, setConversation] = useState([]);
+    const [activeUser, setActiveUser] = useState(false);
     const [loading, setLoading] = useState(false);
     const [isCallActive, setIsCallActive] = useState(false);
     const [isMuted, setIsMuted] = useState(false);
     const [timer, setTimer] = useState(0);
+    const [durationMinutes, setDurationMinutes] = useState(5);
     const [volume, setVolume] = useState(0.8);
     const [showVolumeSlider, setShowVolumeSlider] = useState(false);
     const [callStarting, setCallStarting] = useState(false);
     const [showCodeEditor, setShowCodeEditor] = useState(false);
     const [editorWidth, setEditorWidth] = useState(45);
     const [showTips, setShowTips] = useState(true);
-    const silenceTimerRef = useRef(null);
-    const lastUserActivityRef = useRef(Date.now());
-    const silencePromptsRef = useRef(0);
-    const feedbackRequestedRef = useRef(false);
 
-    // Timer effect
+    // Multi-step feedback loading state
+    const [isGeneratingFeedback, setIsGeneratingFeedback] = useState(false);
+    const [feedbackStep, setFeedbackStep] = useState(0);
+    const [feedbackError, setFeedbackError] = useState(null);
+
+    // Sync duration from interview info if available
+    useEffect(() => {
+        const rawDuration = interviewInfo?.interviewData?.duration;
+        if (rawDuration) {
+            const parsed = parseInt(rawDuration);
+            if (!isNaN(parsed) && parsed > 0) {
+                setDurationMinutes(parsed);
+            }
+        }
+    }, [interviewInfo]);
+
+    // Interview Timer effect
     useEffect(() => {
         let interval;
         if (isCallActive) {
@@ -61,31 +105,117 @@ const StartInterview = () => {
         return () => clearInterval(interval);
     }, [isCallActive]);
 
-    const languageRaw = interviewInfo?.interviewData?.language || '';
-    const languageDisplay = formatLanguageLabel(languageRaw);
-    const durationDisplay = interviewInfo?.interviewData?.duration || '30 min';
+    const totalDurationSeconds = durationMinutes * 60;
+    const remainingSeconds = Math.max(0, totalDurationSeconds - timer);
 
+    const handleExtendDuration = (extraMins = 5) => {
+        setDurationMinutes(prev => {
+            const newMins = prev + extraMins;
+            toast.success(`Interview duration extended by ${extraMins} minutes!`, {
+                description: `Total duration is now ${newMins} minutes.`,
+            });
+            return newMins;
+        });
+    };
+
+    // Reminder notification when 1 minute remaining
     useEffect(() => {
-        if (interviewInfo) return;
+        if (!isCallActive) {
+            reminderWarnedRef.current = false;
+            timeUpWarnedRef.current = false;
+            return;
+        }
 
-        const storedSession = sessionStorage.getItem('interviewSession');
-        if (!storedSession) return;
+        if (remainingSeconds > 60) {
+            reminderWarnedRef.current = false;
+            timeUpWarnedRef.current = false;
+        }
 
+        if (remainingSeconds <= 60 && remainingSeconds > 0 && !reminderWarnedRef.current) {
+            reminderWarnedRef.current = true;
+            toast.warning('1 Minute Remaining!', {
+                duration: 8000,
+                description: 'Only 1 minute left in your interview session. Extend time if needed.',
+                action: {
+                    label: '+5 Min Extend',
+                    onClick: () => handleExtendDuration(5),
+                },
+            });
+        }
+
+        if (remainingSeconds <= 0 && !timeUpWarnedRef.current) {
+            timeUpWarnedRef.current = true;
+            toast.error('Interview Time Limit Reached!', {
+                duration: 10000,
+                description: 'Your allotted interview time has ended.',
+                action: {
+                    label: '+5 Min Extend',
+                    onClick: () => handleExtendDuration(5),
+                },
+            });
+        }
+    }, [timer, isCallActive, remainingSeconds]);
+
+    const currentSessionInfo = getSessionInfo();
+    const languageRaw = currentSessionInfo?.interviewData?.language || '';
+    const languageDisplay = formatLanguageLabel(languageRaw);
+
+    // Save raw conversation immediately to Supabase
+    const saveRawConversationImmediately = async (conv) => {
+        if (!conv || conv.length === 0) return;
+        const currentSession = getSessionInfo();
+        const userName = currentSession?.userName || 'Candidate';
+        const userEmail = currentSession?.userEmail || '';
         try {
-            const parsedSession = JSON.parse(storedSession);
-            if (parsedSession?.interviewData) {
-                setInterviewInfo(parsedSession);
+            const { data, error } = await supabase
+                .from('interview-feedback')
+                .insert([
+                    {
+                        userName: userName,
+                        userEmail: userEmail,
+                        interview_id: interview_id,
+                        raw_conversation: conv,
+                        feedback: null,
+                        recommended: false
+                    }
+                ])
+                .select('id');
+
+            if (error) {
+                console.error('Error saving raw conversation immediately:', error);
+            } else if (data?.[0]?.id) {
+                insertedRecordIdRef.current = data[0].id;
+                console.log('Raw conversation saved immediately with ID:', data[0].id, 'userName:', userName, 'userEmail:', userEmail);
             }
-        } catch (error) {
-            console.error('Failed to restore interview session:', error);
+        } catch (err) {
+            console.error('Failed to save raw conversation:', err);
+        }
+    };
+
+    // Restore session from sessionStorage if needed
+    useEffect(() => {
+        if (interviewInfo?.userName && interviewInfo?.userEmail && interviewInfo?.interviewData) return;
+
+        if (typeof window !== 'undefined') {
+            const storedSession = sessionStorage.getItem('interviewSession');
+            if (!storedSession) return;
+
+            try {
+                const parsedSession = JSON.parse(storedSession);
+                if (parsedSession?.interviewData) {
+                    setInterviewInfo(parsedSession);
+                }
+            } catch (error) {
+                console.error('Failed to restore interview session:', error);
+            }
         }
     }, [interviewInfo, setInterviewInfo]);
 
     // Initialize Vapi and setup event listeners
     useEffect(() => {
-        const vapiKey = process.env.NEXT_PUBLIC_VAPI_PUBLIC_KEY_HINDI;
+        const vapiKey = process.env.NEXT_PUBLIC_VAPI_PUBLIC_KEY;
         if (!vapiKey) {
-            console.error('VAPI key not found in environment variables');
+            console.error('VAPI key missing');
             return;
         }
 
@@ -95,332 +225,171 @@ const StartInterview = () => {
 
         const vapi = vapiRef.current;
 
-        const handleMessage = (message) => {
-            console.log('Message', message);
-
-            if (message?.type === 'status-update' && message?.status === 'ended' && message?.endedReason) {
-                callEndReasonRef.current = message.endedReason;
-            }
-
-            if (message?.conversation) {
-                try {
-                    const safeMessage = JSON.parse(safeStringify(message));
-                    setConversation(prev => [...prev, safeMessage]);
-                    // mark last user activity when message contains user content
-                    try {
-                        const conv = safeMessage?.conversation || safeMessage;
-                        if (Array.isArray(conv)) {
-                            const hasUser = conv.some(c => c?.role === 'user' || c?.source === 'user' || c?.speaker === 'user');
-                            if (hasUser) lastUserActivityRef.current = Date.now();
-                        } else if (safeMessage?.role === 'user') {
-                            lastUserActivityRef.current = Date.now();
-                        }
-                    } catch (e) {
-                        // ignore
-                    }
-                } catch {
-                    setConversation(prev => [...prev, {
-                        type: message?.type || 'unknown',
-                        timestamp: new Date().toISOString(),
-                        note: 'Message serialization failed'
-                    }]);
-                }
-            }
-        }
+        const hasValidConversation = (conv) => {
+            if (!Array.isArray(conv) || conv.length === 0) return false;
+            return conv.some(msg => {
+                if (!msg) return false;
+                const text = msg.content || msg.message || msg.text || '';
+                return text.trim().length > 0 && (msg.role === 'user' || msg.role === 'assistant');
+            });
+        };
 
         const handleCallStart = () => {
-            console.log('Call started');
-            callEndReasonRef.current = null;
-            callFailedRef.current = false;
             setIsCallActive(true);
             setCallStarting(false);
             setTimer(0);
-            toast.success('Interview Started Successfully!');
+            setConversation([]);
+            conversationRef.current = [];
+            insertedRecordIdRef.current = null;
         };
 
-        const handleCallEnd = () => {
-            console.log('Call ended');
-            const endReason = callEndReasonRef.current;
-
+        const handleCallEnd = async () => {
             setIsCallActive(false);
             setCallStarting(false);
             setActiveUser(false);
 
-            // Clear any silence watcher timers
-            clearSilenceWatcher();
+            const finalConversation = conversationRef.current?.length > 0 
+                ? conversationRef.current 
+                : conversation;
 
-            if (callFailedRef.current) {
-                toast.error('Interview disconnected. Please restart and try again.');
-                console.error('Call ended after a previous failure:', endReason);
-				void generateFeedback();
+            console.log("FINAL CONVERSATION AT CALL END:", finalConversation);
+            
+            if (!hasValidConversation(finalConversation)) {
+                toast.error("Connection failure or interview could not be completed. Please try again after some time.", { duration: 6000 });
                 return;
             }
 
-            const failedCall = endReason && /meeting has ended|room was deleted|no-room|eject|error/i.test(String(endReason));
+            // Save raw conversation right away so conversation is never lost
+            await saveRawConversationImmediately(finalConversation);
 
-            if (failedCall) {
-                callFailedRef.current = true;
-                toast.error('Interview disconnected. Please restart and try again.');
-                console.error('Call ended due to failure reason:', endReason);
-                void generateFeedback();
-                return;
-            }
-
-            toast.success('Interview Completed');
-            void generateFeedback();
+            void generateFeedback(finalConversation);
         };
 
-        const handleSpeechStart = () => {
-            console.log('AI started speaking');
-            setActiveUser(false);
-        };
-
-        const handleSpeechEnd = () => {
-            console.log('AI finished speaking');
-            setActiveUser(true);
-            // Start silence watcher after assistant finishes speaking
-            startSilenceWatcher();
-        };
+        const handleSpeechStart = () => setActiveUser(false);
+        const handleSpeechEnd = () => setActiveUser(true);
 
         const handleError = (error) => {
             console.error('VAPI Error:', error);
-            callFailedRef.current = true;
-            callEndReasonRef.current = error?.error?.msg || error?.errorMsg || error?.message || 'unknown-error';
             setCallStarting(false);
             setIsCallActive(false);
-            setLoading(false);
-            toast.error('Failed to start interview. Please try again.');
-            void generateFeedback();
+
+            const finalConversation = conversationRef.current?.length > 0 
+                ? conversationRef.current 
+                : conversation;
+
+            if (!hasValidConversation(finalConversation)) {
+                toast.error('Connection failure. Please try again after some time.', { duration: 6000 });
+                return;
+            }
+
+            toast.error('Connection issue in interview call');
+            void generateFeedback(finalConversation);
         };
 
-        // Register event handlers
-        vapi.on('message', handleMessage);
         vapi.on('call-start', handleCallStart);
         vapi.on('call-end', handleCallEnd);
         vapi.on('speech-start', handleSpeechStart);
         vapi.on('speech-end', handleSpeechEnd);
         vapi.on('error', handleError);
+        vapi.on("message", (message) => {
+            const currentConversation = message?.conversation;
+            if (Array.isArray(currentConversation) && currentConversation.length > 0) {
+                console.log("conversation updated:", currentConversation);
+                setConversation(currentConversation);
+                conversationRef.current = currentConversation;
+            }
+        });
 
         return () => {
-            // Cleanup event listeners
             if (vapi) {
-                vapi.off('message', handleMessage);
                 vapi.off('call-start', handleCallStart);
                 vapi.off('call-end', handleCallEnd);
                 vapi.off('speech-start', handleSpeechStart);
                 vapi.off('speech-end', handleSpeechEnd);
                 vapi.off('error', handleError);
             }
-            clearSilenceWatcher();
-        }
+        };
     }, []);
 
-    // Silence detection: if candidate doesn't speak after AI prompt, ask twice then end interview
-    const startSilenceWatcher = (timeoutSeconds = 15) => {
-        clearSilenceWatcher();
-        silenceTimerRef.current = setTimeout(async () => {
-            const elapsed = Date.now() - lastUserActivityRef.current;
-            if (elapsed >= timeoutSeconds * 1000) {
-                // no activity, prompt user
-                silencePromptsRef.current += 1;
-                promptUserForSpeech(silencePromptsRef.current);
-                if (silencePromptsRef.current >= 2) {
-                    // end interview after second unsuccessful prompt
-                    toast.error('No response detected. Ending interview.');
-                    stopInterview();
-                } else {
-                    // Give another interval
-                    startSilenceWatcher(timeoutSeconds);
-                }
-            }
-        }, timeoutSeconds * 1000);
-    };
-
-    const clearSilenceWatcher = () => {
-        if (silenceTimerRef.current) {
-            clearTimeout(silenceTimerRef.current);
-            silenceTimerRef.current = null;
-        }
-        silencePromptsRef.current = 0;
-    };
-
-    const promptUserForSpeech = (count) => {
-        try {
-            const lang = (interviewInfo?.interviewData?.language || 'english').toLowerCase();
-            let promptText = '';
-            if (lang === 'hindi' || lang === 'hinglish') {
-                promptText = count === 1 ? 'Aap kuch boliye, main aapki response sun raha hoon.' : 'Agar aap bolna bandh kar dete hain toh interview end kar diya jayega. Kripya jawab dein.';
-            } else {
-                promptText = count === 1 ? 'Please say something, I am listening.' : 'If you remain silent the interview will be ended. Please respond.';
-            }
-
-            // Use browser TTS to prompt the user (safer fallback)
-            if (typeof window !== 'undefined' && window.speechSynthesis) {
-                const utter = new SpeechSynthesisUtterance(promptText);
-                utter.lang = lang === 'hindi' ? 'hi-IN' : 'en-US';
-                window.speechSynthesis.cancel();
-                window.speechSynthesis.speak(utter);
-            }
-        } catch (e) {
-            console.error('Prompt TTS failed:', e);
-        }
-    };
-
-    const formatQuestions = () => buildQuestionList(interviewInfo?.interviewData);
-
     const startCall = async () => {
-        // Validation checks
-        if (!interviewInfo) {
+        const currentSession = getSessionInfo();
+        if (!currentSession?.interviewData) {
             toast.error('Interview information not loaded');
             return;
         }
+        console.log("interview details", currentSession);
 
-        const vapiKey = process.env.NEXT_PUBLIC_VAPI_PUBLIC_KEY_HINDI;
+        const vapiKey = process.env.NEXT_PUBLIC_VAPI_PUBLIC_KEY;
+
         if (!vapiKey) {
-            toast.error('VAPI key not found. Please check your environment variables.');
+            console.log('Vapi Key is not found');
             return;
         }
 
-        if (!vapiRef.current) {
-            vapiRef.current = new Vapi(vapiKey);
-        }
+        if (callStarting || isCallActive) return;
 
-        // Check if already starting or active
-        if (callStarting || isCallActive) {
+        const targetAssistantId =
+            process.env.NEXT_PUBLIC_VAPI_ASSISTANT_ID;
+
+        if (!targetAssistantId) {
+            console.log('VAPI Assistant ID not found');
             return;
         }
 
-        callEndReasonRef.current = null;
-        callFailedRef.current = false;
-        feedbackRequestedRef.current = false;
-        setConversation([]);
         setCallStarting(true);
-        toast.info('Starting interview...');
+        feedbackSentRef.current = false;
 
         try {
-            // Check microphone permission first
-            try {
-                await navigator.mediaDevices.getUserMedia({ audio: true });
-            } catch (micError) {
-                console.error('Microphone permission denied:', micError);
-                toast.error('Microphone permission is required. Please allow access and try again.');
-                setCallStarting(false);
-                return;
-            }
-
-            console.log('=== VAPI Call Debug Info ===');
-            console.log('VAPI Key exists:', !!vapiKey);
-            console.log('Interview Info:', {
-                userName: interviewInfo?.userName,
-                jobPosition: interviewInfo?.interviewData?.jobPosition,
-                language: interviewInfo?.interviewData?.language
-            });
-
-            const language = interviewInfo?.interviewData?.language || "english";
-            const userName = interviewInfo?.userName || "Candidate";
-            const jobPosition = interviewInfo?.interviewData?.jobPosition || "this position";
-            const questionList = formatQuestions();
-
-            const voiceConfig = {
-                provider: "openai",
-                model: "gpt-4o-mini-tts",
-                voiceId: getOpenAIVoice(language),
-                cachingEnabled: true
-            };
-
-            const assistantOptions = {
-                model: {
-                    provider: "openai",
-                    model: "gpt-4o-mini",
-                    messages: [
-                        {
-                            role: "system",
-                            content: getSystemPrompt(language, interviewInfo, questionList)
-                        }
-                    ]
-                },
-                voice: voiceConfig,
-                transcriber: {
-                    provider: "deepgram",
-                    model: "nova-2",
-                    language: getDeepgramLangCode(language)
-                },
-                firstMessage: getFirstMessage(language, userName, jobPosition)
-            };
-
-            const result = await vapiRef.current.start(
-                assistantOptions,
-                undefined,
-                undefined,
-                undefined,
-                undefined,
-                { roomDeleteOnUserLeaveEnabled: false }
+            const language = currentSession?.interviewData?.language || 'English';
+            const userName = currentSession?.userName || 'Candidate';    
+            const jobPosition = currentSession?.interviewData?.jobPosition || 'Software Eng';
+            const questionList = buildQuestionList(currentSession?.interviewData);
+            // console.log("language:",language)
+            // console.log("usernmae:",userName)
+            // console.log("jobPosition:",jobPosition)
+            // console.log("questionList:",questionList)
+            await vapiRef.current.start(
+                targetAssistantId,
+                {
+                    variableValues: {
+                        userName,
+                        jobPosition,
+                        language,
+                        questionList,
+                    },
+                    maxDurationSeconds: durationMinutes * 60,
+                }
             );
-            console.log('Call started successfully:', result);
 
         } catch (error) {
-            console.error('Detailed error starting call:', error);
-
-            // Log the full error details
-            if (error.response) {
-                console.error('Error status:', error.response.status);
-                console.error('Error data:', error.response.data);
-                console.error('Error headers:', error.response.headers);
-            } else {
-                console.error('No response object:', error.message);
-            }
+            console.error('Error starting call:', error);
 
             setCallStarting(false);
             setIsCallActive(false);
 
-            // More specific error messages based on response
-            if (error.response?.status === 400) {
-                const errorMessage = error.response?.data?.message || 'Invalid configuration';
-                toast.error(`Configuration error: ${errorMessage}`);
-                console.error('400 Error details:', error.response.data);
-            } else if (error.response?.status === 401) {
-                toast.error('Authentication error: Invalid VAPI key');
-            } else if (error.response?.status === 403) {
-                toast.error('Access denied: Check your VAPI permissions');
-            } else if (error.response?.status === 429) {
-                toast.error('Rate limit exceeded: Please try again later');
-            } else if (!error.response) {
-                toast.error('Network error: Please check your internet connection');
-            } else {
-                toast.error('Failed to start interview. Please check console for details.');
-            }
+            toast.error('Connection failure while starting interview. Please try again after some time.', { duration: 6000 });
         }
     };
 
     const toggleMute = () => {
         if (!isCallActive || !vapiRef.current) return;
-
         try {
-            if (isMuted) {
-                vapiRef.current.setMuted(false);
-            } else {
-                vapiRef.current.setMuted(true);
-            }
+            vapiRef.current.setMuted(!isMuted);
             setIsMuted(!isMuted);
-            toast.info(isMuted ? 'Microphone Unmuted' : 'Microphone Muted');
+            toast.info(!isMuted ? 'Microphone Muted' : 'Microphone Unmuted');
         } catch (error) {
-            console.error('Error toggling mute:', error);
-            toast.error('Failed to toggle microphone');
+            console.error('Mute error:', error);
         }
     };
 
     const handleVolumeChange = (newVolume) => {
         setVolume(newVolume);
         try {
-            if (vapiRef.current && vapiRef.current.setVolume) {
+            if (vapiRef.current?.setVolume) {
                 vapiRef.current.setVolume(newVolume);
             }
-            const audioElements = document.querySelectorAll('audio');
-            audioElements.forEach(audio => {
-                audio.volume = newVolume;
-            });
         } catch (error) {
-            console.error('Error setting volume:', error);
+            console.error('Volume change error:', error);
         }
     };
 
@@ -428,95 +397,184 @@ const StartInterview = () => {
         try {
             if (vapiRef.current) {
                 vapiRef.current.stop();
-                toast.info('Ending interview...');
             }
         } catch (error) {
             console.error('Error stopping interview:', error);
-            toast.error('Error ending interview');
-            void generateFeedback();
-        }
-    }
+            const finalConversation = conversationRef.current?.length > 0 
+                ? conversationRef.current 
+                : conversation;
 
-    const generateFeedback = async () => {
-        if (feedbackRequestedRef.current) {
+            const isConversationValid = Array.isArray(finalConversation) && finalConversation.some(msg => {
+                if (!msg) return false;
+                const text = msg.content || msg.message || msg.text || '';
+                return text.trim().length > 0 && (msg.role === 'user' || msg.role === 'assistant');
+            });
+
+            if (!isConversationValid) {
+                toast.error('Interview could not be completed. Please try again after some time.', { duration: 6000 });
+                return;
+            }
+
+            void generateFeedback(finalConversation);
+        }
+    };
+
+    const generateFeedback = async (conversationData) => {
+        if (feedbackSentRef.current) return;
+
+        const finalConversation = (Array.isArray(conversationData) && conversationData.length > 0)
+            ? conversationData
+            : (Array.isArray(conversationRef.current) && conversationRef.current.length > 0
+                ? conversationRef.current
+                : (Array.isArray(conversation) ? conversation : []));
+
+        const isConversationValid = Array.isArray(finalConversation) && finalConversation.some(msg => {
+            if (!msg) return false;
+            const text = msg.content || msg.message || msg.text || '';
+            return text.trim().length > 0 && (msg.role === 'user' || msg.role === 'assistant');
+        });
+
+        if (!isConversationValid) {
+            console.warn("No valid conversation recorded. Aborting feedback generation.");
+            toast.error("Connection failure or interview could not be completed. Please try again after some time.", { duration: 6000 });
+            setLoading(false);
+            setIsGeneratingFeedback(false);
+            setIsCallActive(false);
+            setCallStarting(false);
+            feedbackSentRef.current = false;
             return;
         }
 
-        feedbackRequestedRef.current = true;
+        feedbackSentRef.current = true;
         setLoading(true);
+        setIsGeneratingFeedback(true);
+        setFeedbackError(null);
+        setFeedbackStep(0); // Step 0: Securing conversation data...
+
+        // Ensure raw conversation is saved immediately if not already saved
+        if (!insertedRecordIdRef.current && finalConversation.length > 0) {
+            await saveRawConversationImmediately(finalConversation);
+        }
+
+        setFeedbackStep(1); // Step 1: Transcribing and indexing response...
 
         try {
-            // Convert conversation array to string for API
-            const conversationString = safeStringify(conversation);
+            setFeedbackStep(2); // Step 2: Evaluating technical depth...
+            console.log("CONVERSATION SENT TO AI:", finalConversation);
+
+            const currentSession = getSessionInfo();
+            const userName = currentSession?.userName || 'Candidate';
+            const userEmail = currentSession?.userEmail || '';
 
             const result = await axios.post('/api/ai-feedback', {
-                conversation: conversationString,
-                interviewData: interviewInfo?.interviewData,
-                userName: interviewInfo?.userName
+                conversation: finalConversation,
+                interviewData: currentSession?.interviewData,
+                userName: userName
             });
 
-            console.log(result?.data);
+            setFeedbackStep(3); // Step 3: Assessing communication clarity...
 
-            const Content = result?.data.content;
+            const content = result?.data?.content;
+            console.log("RAW AI RESPONSE:", content);
+
+            if (!content) {
+                throw new Error("AI feedback response is empty");
+            }
 
             let feedbackParsed;
+
             try {
-                // Try parsing directly first
-                feedbackParsed = JSON.parse(Content);
-            } catch (directParseError) {
-                // If direct parse fails, try extracting from code block
-                const jsonMatch = Content.match(/```json([\s\S]*?)```/);
-                const rawJSON = jsonMatch ? jsonMatch[1].trim() : Content;
-                try {
-                    feedbackParsed = JSON.parse(rawJSON);
-                } catch (err) {
-                    console.error("Failed to parse feedback JSON:", err);
-                    toast.error("Failed to generate feedback");
-                    setLoading(false);
-                    return;
-                }
+                feedbackParsed = JSON.parse(content);
+            } catch (error) {
+                const jsonMatch = content?.match(/```json([\s\S]*?)```/);
+                const rawJSON = jsonMatch ? jsonMatch[1].trim() : content;
+                feedbackParsed = JSON.parse(rawJSON);
             }
 
-            const { data, error } = await supabase
-                .from('interview-feedback')
-                .insert([
+            const isRecommended = Boolean(
+                feedbackParsed?.feedback?.recommendation ?? 
+                feedbackParsed?.recommendation ?? 
+                false
+            );
+
+            setFeedbackStep(4); // Step 4: Finalizing recommendation & score...
+
+            if (insertedRecordIdRef.current) {
+                const { error: updateErr } = await supabase
+                    .from('interview-feedback')
+                    .update({
+                        userName: userName,
+                        userEmail: userEmail,
+                        feedback: feedbackParsed,
+                        recommended: isRecommended
+                    })
+                    .eq('id', insertedRecordIdRef.current);
+
+                if (updateErr) {
+                    console.error("Error updating feedback record:", updateErr);
+                }
+            } else {
+                await supabase.from('interview-feedback').insert([
                     {
-                        userName: interviewInfo?.userName,
-                        userEmail: interviewInfo?.userEmail,
+                        userName: userName,
+                        userEmail: userEmail,
                         interview_id: interview_id,
                         feedback: feedbackParsed,
-                        recommended: false
-                    },
-                ])
-                .select();
-
-            if (error) {
-                console.error("Supabase error:", error);
-                toast.error("Failed to save feedback");
-            } else {
-                console.log(data);
-                toast.success("Feedback generated successfully!");
+                        recommended: isRecommended,
+                        raw_conversation: finalConversation
+                    }
+                ]);
             }
 
-            setLoading(false);
-            router.replace('/interview/' + interview_id + "/complete");
+            // Brief pause to let user see final step complete checkmark
+            setTimeout(() => {
+                router.replace(`/interview/${interview_id}/complete`);
+            }, 800);
+
         } catch (error) {
             console.error("Error generating feedback:", error);
-            toast.error("Failed to process interview");
+            setFeedbackError(error?.message || "Failed to process interview feedback.");
             setLoading(false);
         }
     };
 
     return (
-        <div className='h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300 overflow-hidden flex flex-col'>
+        <div className="h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300 overflow-hidden flex flex-col">
             <StartInterviewHeader
                 timer={formatTimer(timer)}
+                remainingSeconds={remainingSeconds}
+                durationMinutes={durationMinutes}
+                isCallActive={isCallActive}
                 jobPosition={interviewInfo?.interviewData?.jobPosition}
                 language={languageDisplay}
-                duration={durationDisplay}
                 showCodeEditor={showCodeEditor}
                 onToggleCodeEditor={() => setShowCodeEditor((prev) => !prev)}
+                onExtendDuration={handleExtendDuration}
             />
+
+            {/* Warning Alert Banner when <= 1 minute left */}
+            {isCallActive && remainingSeconds <= 60 && (
+                <div className={`px-4 py-2 flex items-center justify-between text-xs sm:text-sm font-semibold shadow-sm transition-colors ${
+                    remainingSeconds <= 0
+                        ? 'bg-red-600 text-white animate-pulse'
+                        : 'bg-amber-500 text-white animate-pulse'
+                }`}>
+                    <div className='flex items-center gap-2'>
+                        <AlertTriangle className='h-4 w-4 flex-shrink-0' />
+                        <span>
+                            {remainingSeconds <= 0
+                                ? 'Interview time limit reached! Click "+ Add 5 Mins" to extend.'
+                                : `Reminder: Only ${remainingSeconds} seconds left in this interview session!`}
+                        </span>
+                    </div>
+                    <button
+                        onClick={() => handleExtendDuration(5)}
+                        className='bg-white text-gray-900 px-3 py-1 rounded-md text-xs font-bold hover:bg-amber-50 transition-colors shadow-sm'
+                    >
+                        + Add 5 Mins
+                    </button>
+                </div>
+            )}
 
             {showTips && (
                 <div className='fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-sm px-4'>
@@ -550,74 +608,77 @@ const StartInterview = () => {
                 </div>
             )}
 
-            <div className='flex-1 flex overflow-hidden '>
+            <div className='flex-1 flex overflow-hidden'>
                 <div
                     className='flex flex-col bg-gray-50 dark:bg-gray-900 transition-all duration-300 overflow-hidden'
                     style={{ width: showCodeEditor ? `${100 - editorWidth}%` : '100%' }}
                 >
-                    <div className='flex-1 overflow-y-auto px-28 py-10'>
-                        <div className='grid grid-cols-1 md:grid-cols-2 gap-4 mb-6'>
-                            <InterviewParticipantCard
-                                name='AI Interviewer'
-                                isActive={!activeUser && isCallActive}
-                                statusText='Speaking...'
-                                idleText='Listening'
-                            >
-                                <div className='relative flex-shrink-0'>
-                                    {!activeUser && isCallActive && (
-                                        <>
-                                            <span className='absolute inset-0 rounded-full bg-blue-500 opacity-30 animate-ping scale-110' />
-                                            <span className='absolute inset-0 rounded-full bg-blue-500 opacity-50 animate-ping scale-105 animation-delay-75' />
-                                        </>
-                                    )}
-                                    <div className='relative bg-gradient-to-br from-blue-500 to-purple-600 p-3 rounded-full'>
-                                        <Image
-                                            src='/ai.png'
-                                            alt='AI Recruiter'
-                                            width={48}
-                                            height={48}
-                                            className='w-12 h-12 rounded-full object-cover filter brightness-0 invert'
-                                        />
+                    <div className='flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8'>
+                        <div className='w-full max-w-[1400px] mx-auto'>
+                            <div className='grid grid-cols-1 md:grid-cols-2 gap-4 mb-6'>
+                                <InterviewParticipantCard
+                                    name='AI Interviewer'
+                                    isActive={!activeUser && isCallActive}
+                                    statusText='Speaking...'
+                                    idleText='Listening'
+                                >
+                                    <div className='relative flex-shrink-0'>
+                                        {!activeUser && isCallActive && (
+                                            <>
+                                                <span className='absolute inset-0 rounded-full bg-blue-500 opacity-30 animate-ping scale-110' />
+                                                <span className='absolute inset-0 rounded-full bg-blue-500 opacity-50 animate-ping scale-105 animation-delay-75' />
+                                            </>
+                                        )}
+                                        <div className='relative bg-gradient-to-br from-blue-500 to-purple-600 p-3 rounded-full'>
+                                            <Image
+                                                src='/ai.png'
+                                                alt='AI Recruiter'
+                                                width={48}
+                                                height={48}
+                                                className='w-12 h-12 rounded-full object-cover filter brightness-0 invert'
+                                            />
+                                        </div>
                                     </div>
-                                </div>
-                            </InterviewParticipantCard>
+                                </InterviewParticipantCard>
 
-                            <InterviewParticipantCard
-                                name={interviewInfo?.userName || 'Candidate'}
-                                isActive={activeUser && isCallActive}
-                                statusText='Speaking...'
-                                idleText='Listening'
-                            >
-                                <div className='relative flex-shrink-0'>
-                                    {activeUser && isCallActive && (
-                                        <>
-                                            <span className='absolute inset-0 rounded-full bg-green-500 opacity-30 animate-ping scale-110' />
-                                            <span className='absolute inset-0 rounded-full bg-green-500 opacity-50 animate-ping scale-105 animation-delay-75' />
-                                        </>
-                                    )}
-                                    <div className='relative bg-gradient-to-br from-green-500 to-teal-600 p-4 rounded-full w-16 h-16 flex items-center justify-center'>
-                                        <span className='text-xl font-bold text-white'>
-                                            {interviewInfo?.userName?.[0]?.toUpperCase() || 'U'}
-                                        </span>
+                                <InterviewParticipantCard
+                                    name={getSessionInfo()?.userName || 'Candidate'}
+                                    isActive={activeUser && isCallActive}
+                                    statusText='Speaking...'
+                                    idleText='Listening'
+                                >
+                                    <div className='relative flex-shrink-0'>
+                                        {activeUser && isCallActive && (
+                                            <>
+                                                <span className='absolute inset-0 rounded-full bg-green-500 opacity-30 animate-ping scale-110' />
+                                                <span className='absolute inset-0 rounded-full bg-green-500 opacity-50 animate-ping scale-105 animation-delay-75' />
+                                            </>
+                                        )}
+                                        <div className='relative bg-gradient-to-br from-green-500 to-teal-600 p-4 rounded-full w-16 h-16 flex items-center justify-center'>
+                                            <span className='text-xl font-bold text-white'>
+                                                {(getSessionInfo()?.userName || 'Candidate')?.[0]?.toUpperCase()}
+                                            </span>
+                                        </div>
                                     </div>
-                                </div>
-                            </InterviewParticipantCard>
+                                </InterviewParticipantCard>
+                            </div>
+
+                            <InterviewControls
+                                isCallActive={isCallActive}
+                                loading={loading}
+                                callStarting={callStarting}
+                                isMuted={isMuted}
+                                showVolumeSlider={showVolumeSlider}
+                                volume={volume}
+                                onStart={startCall}
+                                onToggleMute={toggleMute}
+                                onEnd={stopInterview}
+                                onToggleVolumeSlider={() => setShowVolumeSlider((prev) => !prev)}
+                                onVolumeChange={handleVolumeChange}
+                                onExtendDuration={handleExtendDuration}
+                                remainingSeconds={remainingSeconds}
+                            />
                         </div>
-
-                        <InterviewControls
-                            isCallActive={isCallActive}
-                            loading={loading}
-                            callStarting={callStarting}
-                            isMuted={isMuted}
-                            showVolumeSlider={showVolumeSlider}
-                            volume={volume}
-                            onStart={startCall}
-                            onToggleMute={toggleMute}
-                            onEnd={stopInterview}
-                            onToggleVolumeSlider={() => setShowVolumeSlider((prev) => !prev)}
-                            onVolumeChange={handleVolumeChange}
-                        />
-
                     </div>
                 </div>
 
@@ -627,8 +688,19 @@ const StartInterview = () => {
                     setEditorWidth={setEditorWidth}
                 />
             </div>
-        </div>
-    )
-}
 
-export default StartInterview
+            {isGeneratingFeedback && (
+                <FeedbackGeneratingLoader
+                    currentStep={feedbackStep}
+                    error={feedbackError}
+                    onRetry={() => {
+                        feedbackSentRef.current = false;
+                        void generateFeedback();
+                    }}
+                />
+            )}
+        </div>
+    );
+};
+
+export default StartInterview;

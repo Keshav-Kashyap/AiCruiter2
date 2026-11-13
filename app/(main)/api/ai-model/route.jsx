@@ -69,7 +69,7 @@ export async function POST(req) {
         })
 
         const completion = await openai.chat.completions.create({
-            model: "openai/gpt-oss-20b:free",
+            model: "openrouter/free",
             messages: [
                 { role: "user", content: FINAL_PROMPT }
             ],

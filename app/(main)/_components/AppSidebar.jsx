@@ -43,11 +43,11 @@ export function AppSidebar() {
                                     <Image
                                         src={'/logo2.png'}
                                         alt="logo"
-                                        width={120}
-                                        height={40}
-                                        className="w-[40px] h-auto"
+                                        width={60}
+                                        height={60}
+                                        className="w-[50px] h-auto "
                                     />
-                                    <h2 className="text-xl font-bold text-gray-900 dark:text-white">QRA</h2>
+                                    <span className="text-xl font-bold text-gray-900 dark:text-gray-100">QRA</span>
                                 </div>
                             )}
                         </div>

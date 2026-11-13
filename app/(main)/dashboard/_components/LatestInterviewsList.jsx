@@ -1,52 +1,18 @@
 "use client"
 import { useUser } from '@/app/provider'
 import { Button } from '@/components/ui/button'
-import { supabase } from '@/services/supaBaseClient'
-import { Video, Plus, Loader2, Clock, TrendingUp, ChevronRight, FileText, Calendar, Eye, ArrowRight } from 'lucide-react'
-import React, { useEffect, useState } from 'react'
+import { Video, Plus, Clock, TrendingUp, ChevronRight, FileText, Calendar, Eye, ArrowRight } from 'lucide-react'
+import React from 'react'
 import InterviewCard from './InterviewCard'
-import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import Link from "next/link";
+import { useInterview } from './useInterview'
+import InterviewListSkeleton, { StatsSkeleton } from './InterviewListSkeleton'
+
 const LatestInterviewsList = () => {
-    const [interviewList, setInterviewList] = useState([]);
-    const [loading, setLoading] = useState(true);
     const router = useRouter();
-    const { user } = useUser();
-
-    useEffect(() => {
-        user && GetInterViewList();
-    }, [user])
-
-    const GetInterViewList = async () => {
-        setLoading(true);
-
-        try {
-            let { data: interviews, error } = await supabase
-                .from('interviews')
-                .select(`jobPosition ,duration,interview_id,language,CompanyName,created_at`)
-                .eq('created_by', user?.id)
-                .order('id', { ascending: false })
-                .limit(6)
-
-            if (error) {
-                toast.error('Failed to fetch latest interviews');
-                console.error('Error:', error);
-                return;
-            }
-
-            console.log(interviews);
-            setInterviewList(interviews || []);
-        } catch (error) {
-            console.error('Error fetching interviews:', error);
-            toast.error('Something went wrong while fetching interviews');
-        } finally {
-            setLoading(false);
-        }
-    }
-
-
-
+    const { user, loading: userLoading } = useUser();
+    const { interviewList = [], loading } = useInterview(user, userLoading, 6);
 
     const getRecentStats = () => {
         const today = new Date();
@@ -91,7 +57,9 @@ const LatestInterviewsList = () => {
             </div>
 
             {/* Quick Stats */}
-            {!loading && interviewList.length > 0 && (
+            {loading ? (
+                <StatsSkeleton />
+            ) : interviewList.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
                         <div className="flex items-center gap-3">
@@ -129,22 +97,12 @@ const LatestInterviewsList = () => {
                         </div>
                     </div>
                 </div>
-            )}
+            ) : null}
 
             {/* Content Section */}
             <div className="space-y-4">
                 {loading ? (
-                    <div className="flex flex-col items-center justify-center py-16 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
-                        <div className="p-4 bg-green-100 dark:bg-green-900 rounded-full mb-4">
-                            <Loader2 className="w-8 h-8 text-green-600 dark:text-green-400 animate-spin" />
-                        </div>
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                            Loading Recent Interviews
-                        </h3>
-                        <p className="text-gray-500 dark:text-gray-400 text-center">
-                            Fetching your latest interview data...
-                        </p>
-                    </div>
+                    <InterviewListSkeleton limit={6} />
                 ) : (
                     <>
                         {interviewList.length === 0 ? (

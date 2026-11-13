@@ -1,21 +1,35 @@
 "use client";
-import React, { use, useState } from 'react';
-import { CheckCircle, Home, Loader2 } from "lucide-react";
-import { useRouter } from 'next/navigation';
+import React, { useState } from 'react';
+import { CheckCircle, Home, Loader2, FileText } from "lucide-react";
+import { useRouter, useParams } from 'next/navigation';
 
 
 const InterviewComplete = () => {
-    const [loading, setLoading] = useState(false);
+    const [loadingHome, setLoadingHome] = useState(false);
+    const [loadingFeedback, setLoadingFeedback] = useState(false);
     const router = useRouter();
+    const params = useParams();
+    const interview_id = params?.interview_id;
+
     const handleGoHome = () => {
-        setLoading(true);
+        setLoadingHome(true);
         // Simulate navigation delay
         setTimeout(() => {
-            setLoading(false);
+            setLoadingHome(false);
+            router.push('/dashboard');
+        }, 800);
+    };
 
-            router.push('/dashboard')
-
-        }, 1000);
+    const handleCheckFeedback = () => {
+        setLoadingFeedback(true);
+        setTimeout(() => {
+            setLoadingFeedback(false);
+            if (interview_id) {
+                router.push(`/scheduled-interview/${interview_id}/details`);
+            } else {
+                router.push('/scheduled-interview');
+            }
+        }, 800);
     };
 
     return (
@@ -37,19 +51,34 @@ const InterviewComplete = () => {
                     We will review your application and get back to you soon.
                 </p>
 
-                {/* Go Home Button */}
-                <button
-                    onClick={handleGoHome}
-                    disabled={loading}
-                    className="bg-indigo-600 hover:bg-indigo-700 dark:hover:bg-indigo-500 disabled:bg-indigo-400 dark:disabled:bg-indigo-700 disabled:cursor-not-allowed text-white font-semibold py-3 px-8 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2 mx-auto"
-                >
-                    {loading ? (
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                    ) : (
-                        <Home className="w-5 h-5" />
-                    )}
-                    {loading ? 'Loading...' : 'Go Home'}
-                </button>
+                {/* Action Buttons */}
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                    <button
+                        onClick={handleCheckFeedback}
+                        disabled={loadingFeedback || loadingHome}
+                        className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 dark:hover:bg-indigo-500 disabled:bg-indigo-400 dark:disabled:bg-indigo-700 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
+                    >
+                        {loadingFeedback ? (
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                        ) : (
+                            <FileText className="w-5 h-5" />
+                        )}
+                        {loadingFeedback ? 'Loading...' : 'Check Feedback'}
+                    </button>
+
+                    <button
+                        onClick={handleGoHome}
+                        disabled={loadingHome || loadingFeedback}
+                        className="w-full sm:w-auto bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed text-gray-700 dark:text-gray-200 font-semibold py-3 px-6 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
+                    >
+                        {loadingHome ? (
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                        ) : (
+                            <Home className="w-5 h-5" />
+                        )}
+                        {loadingHome ? 'Loading...' : 'Go Home'}
+                    </button>
+                </div>
             </div>
         </div>
     );

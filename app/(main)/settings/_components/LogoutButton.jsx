@@ -11,6 +11,10 @@ const LogoutButton = () => {
     const handleLogout = async () => {
         setIsLoggingOut(true);
         try {
+            if (typeof window !== 'undefined') {
+                localStorage.removeItem('user');
+                localStorage.removeItem('userName');
+            }
             const { error } = await supabase.auth.signOut();
             if (error) {
                 console.error('Error logging out:', error);
